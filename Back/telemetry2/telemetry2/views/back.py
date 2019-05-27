@@ -26,7 +26,7 @@ def init_back(request):
             return 'souci'
     else:
         return 'no params'
-        )
+        
 
 
 
