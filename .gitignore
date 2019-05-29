@@ -4,4 +4,4 @@ Back/*.egg-info
 
 Front/stage_front/node_modules/
 Front/stage_front/build/
-Front/stage_front/package-lock.json
+Front/stage_front/*-lock.json
