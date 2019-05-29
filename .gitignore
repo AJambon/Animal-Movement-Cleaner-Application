@@ -1,3 +1,5 @@
+.vscode
+
 Back/.vscode
 Back/stageenv
 Back/telemetry2/telemetry2.egg-info/
@@ -9,3 +11,4 @@ Back/telemetry2/telemetry2/views/__pycache__/
 Front/stage_front/node_modules/
 Front/stage_front/build/
 Front/stage_front/package-lock.json
+Front/cesiumjs/
