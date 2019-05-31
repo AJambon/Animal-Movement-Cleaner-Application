@@ -31,9 +31,6 @@ Vue.use(VueCesium, {
   cesiumPath: 'https://unpkg.com/cesium/Build/Cesium/Cesium.js'
 })
 
-// pour les couches à choisir
-// var ko = this._myCesium.knockout;
-
 export default {
   name: 'App',
   components: {
@@ -83,18 +80,6 @@ export default {
         }
       }
     },
-    // LayersViewModel(viewer) {
-    //   var _this = this
-    //   this.rawdata = ko.observable(false)
-    //   this.analyzeddata = ko.observable(false)
-    //   this._viewer=viewer
-    //   this.loadLayers() {
-    //     _this.rawdata.subscribe(function (newVal) {
-    //       _this.toggleDataSource(myRawData)
-    //     },
-    //     _this.analyzeddata.subscribe(function (newVal) {
-    //       _this.toggleDataSource(myAnalyzedData);
-    // },
     // function to create the points from imported data
     createPoint (options) {
       return new this._myCesium.Entity(
@@ -187,36 +172,25 @@ export default {
       console.log('on est dans remove_point', SelectedPoint)
       SelectedPoint.entityCollection.remove(SelectedPoint)
     }
-    /* mounted () {
-      this.camera.position.longitude = 5.369222
-      this.camera.position.latitude = 43.292770
-      this.camera.position.height = 10000000
-      this.animation = true
-    } */},
+    },
   mounted () {
     var _this = this
     _this.$root.$on('eventing', data => {
-      // Creates an EntityCollection
+      // Creates an EntityCollection 
       _this.myRawData = new _this._myCesium.CustomDataSource('my raw data')
       // To add to the EntityCollection
       for (var it in data[0]) {
         _this.myRawData.entities.add(_this.createPoint(data[0][it]))
       }
-      // console.log('test brute', myRawData)
       _this.myAnalyzedData = new _this._myCesium.CustomDataSource('my analyzed data')
       for (var ite in data[1]) {
         _this.myAnalyzedData.entities.add(_this.createPoint(data[1][ite]))
       }
-      // console.log('test analysé', myAnalyzedData)
-      // To display on map
-      // _this._myViewer.dataSources.add(myRawData)
-      // _this._myViewer.dataSources.add(myAnalyzedData)
     })
     _this.$root.$on('downloadcsv', flag => {
       console.log('je genere les data a transformer')
       // TODO recuperer et transormer la collection
       this.$root.$emit('CSVtodownload', true)
-      //
     })
   }}
 </script>
