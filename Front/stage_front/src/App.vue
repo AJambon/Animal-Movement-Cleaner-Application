@@ -2,7 +2,7 @@
   <div id="app">
     <visualization></visualization>
     <ImportData></ImportData>
-    <Export2></Export2>
+    <Export2 @downloadcsv='ManageData'></Export2>
     <div class="viewer" ref="myViewer">
       <div class="demo-tool">
         <input id = "rd" value="rd" type="checkbox" @change="onChange($event)" v-model="checkedNames" />
@@ -30,9 +30,6 @@ Vue.use(VueCesium, {
   // Official Online Cesium Build package：
   cesiumPath: 'https://unpkg.com/cesium/Build/Cesium/Cesium.js'
 })
-
-// pour les couches à choisir
-// var ko = this._myCesium.knockout;
 
 export default {
   name: 'App',
@@ -83,18 +80,6 @@ export default {
         }
       }
     },
-    // LayersViewModel(viewer) {
-    //   var _this = this
-    //   this.rawdata = ko.observable(false)
-    //   this.analyzeddata = ko.observable(false)
-    //   this._viewer=viewer
-    //   this.loadLayers() {
-    //     _this.rawdata.subscribe(function (newVal) {
-    //       _this.toggleDataSource(myRawData)
-    //     },
-    //     _this.analyzeddata.subscribe(function (newVal) {
-    //       _this.toggleDataSource(myAnalyzedData);
-    // },
     // function to create the points from imported data
     createPoint (options) {
       return new this._myCesium.Entity(
@@ -102,7 +87,8 @@ export default {
           id: options.id,
           name: options.id,
           description: options.date,
-          position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT),
+          position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, 0.0, this._myCesium.Ellipsoid.WGS84),
+          date: this._myCesium.JulianDate.fromIso8601(options.date),
           point: {
             pixelSize: 5,
             color: typeof (options.status) === 'undefined' ? this._myCesium.Color.BLUE : (options.status === 'kept') ? this._myCesium.Color.GREEN : this._myCesium.Color.RED,
@@ -184,17 +170,41 @@ export default {
     },
     remove_point () {
       var SelectedPoint = this._myViewer.selectedEntity
-      console.log('on est dans remove_point', SelectedPoint)
+      // console.log('on est dans remove_point', SelectedPoint)
       SelectedPoint.entityCollection.remove(SelectedPoint)
+    },
+    // Function to give data from entitescollections same shape as backapp and then send it to export2
+    ManageData () {
+      if (typeof (this.myAnalyzedData) === 'undefined') {
+        alert('Import data first')
+      } else {
+        console.log('je genere les data a transformer depuis managedata', this.myAnalyzedData.entities.values)
+        var dataPoints = []
+        for (var i = 0; i < this.myAnalyzedData.entities.values.length; i++) {
+          var item = this.myAnalyzedData.entities.values[i]
+          var curPosition = item.position.getValue()
+          var carto = this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(curPosition)
+          var lon = this._myCesium.Math.toDegrees(carto.longitude)
+          var lat = this._myCesium.Math.toDegrees(carto.latitude)
+          var height = this._myCesium.Math.toDegrees(carto.height)
+          var date = this._myCesium.JulianDate.toIso8601(item._date) // VOIR SOUCI DE DATE
+          // var date = this._myCesium.JulianDate.toDate(item._date)
+          dataPoints.push({
+            id: item._id,
+            date: date,
+            LON: lon,
+            LAT: lat,
+            elevation: height
+          })
+        }
+        console.log(dataPoints)
+        this.$root.$emit('CSVtodownload', dataPoints)
+      }
     }
-    /* mounted () {
-      this.camera.position.longitude = 5.369222
-      this.camera.position.latitude = 43.292770
-      this.camera.position.height = 10000000
-      this.animation = true
-    } */},
+  },
   mounted () {
     var _this = this
+    // MODIFIER AVEC THIS.EMIT DANS ImportData ET EVENT LISTENER DANS APP avec fonction https://www.telerik.com/blogs/how-to-emit-data-in-vue-beyond-the-vuejs-documentation
     _this.$root.$on('eventing', data => {
       // Creates an EntityCollection
       _this.myRawData = new _this._myCesium.CustomDataSource('my raw data')
@@ -202,22 +212,18 @@ export default {
       for (var it in data[0]) {
         _this.myRawData.entities.add(_this.createPoint(data[0][it]))
       }
-      // console.log('test brute', myRawData)
       _this.myAnalyzedData = new _this._myCesium.CustomDataSource('my analyzed data')
       for (var ite in data[1]) {
         _this.myAnalyzedData.entities.add(_this.createPoint(data[1][ite]))
       }
-      // console.log('test analysé', myAnalyzedData)
-      // To display on map
-      // _this._myViewer.dataSources.add(myRawData)
-      // _this._myViewer.dataSources.add(myAnalyzedData)
     })
-    _this.$root.$on('downloadcsv', flag => {
-      console.log('je genere les data a transformer')
-      // TODO recuperer et transormer la collection
-      this.$root.$emit('CSVtodownload', true)
-      //
-    })
+    // _this.$root.$on('downloadcsv', flag => {
+
+    //   console.log('je genere les data a transformer', _this.myAnalyzedData)
+    //   // TODO recuperer et transormer la collection
+
+    //   this.$root.$emit('CSVtodownload', true)
+    // })
   }}
 </script>
 
