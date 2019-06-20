@@ -10,5 +10,5 @@ def includeme(config):
     # config.add_view(my_view, route_name='home')
     config.scan('.views.back')
     config.add_route('backapp', '/backapp')
-    
+    config.add_route('upload', '/upload')
 
