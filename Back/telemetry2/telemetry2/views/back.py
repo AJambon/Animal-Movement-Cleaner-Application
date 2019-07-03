@@ -4,16 +4,18 @@ import os
 import uuid
 import shutil
 import logging
+import utm
 import random
 from copy import deepcopy
 import sys
 import json
 import pandas as pd 
 import numpy as np
-from math import radians, sin, cos, acos
+from math import radians, sin, cos, acos, sqrt
 from pyramid.view import view_config
 from pyramid.response import Response
 from pyramid.request import Request
+from ..smallestenclosingcircle import *
 
 #Algorithm from csv file
 @view_config(route_name='upload', renderer='json',request_method='POST')
@@ -29,8 +31,9 @@ def init_upload(request):
     points_prefiltered = dfToListDict(workingDf)
     points_filtered1=Distance_algo(points_prefiltered,100,100) # seuils à modifier
     points_filtered2=Speed_algo(points_filtered1,100,130) # seuils à modifier
+    detected_immo = Immobility_algo(points_filtered2,200) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
 
-    return dfToListDict(rawPointsDf),points_prefiltered,dfToListDict(eleminatedPointsdf),points_filtered2
+    return dfToListDict(rawPointsDf),points_prefiltered,dfToListDict(eleminatedPointsdf),points_filtered2, detected_immo
 
 def DataFrameManagement(objFile,WantedData):
     data = pd.read_csv(objFile.file,dtype=str)
@@ -80,7 +83,8 @@ def init_back(request):
             points_filtered1=Distance_algo(points_prefiltered,2,10)
             # Add speed info 
             points_filtered2=Speed_algo(points_filtered1,2,50)
-            return points_distinct,points_prefiltered,dfToListDict(eleminatedPointsdf),points_filtered2 # ,duplicates
+            detected_immo = Immobility_algo(points_filtered2,100)
+            return points_distinct,points_prefiltered,dfToListDict(eleminatedPointsdf),points_filtered2, detected_immo # ,duplicates
         else :
             return 'souci'
     else:
@@ -281,7 +285,29 @@ def Speed_algo(points,max1,MaxSpeed):
             pointsfilteredS.append(points[i])
     return pointsfilteredS
         
+def Immobility_algo(points,immo_range): # trouver le barycentre de points, trouver le point le plus distant de ce barycentre -> rayon du cercle : tant que le rayon
+    detected_immo = []
+    L=len(points)
+    # Démarrer de la fin
+    points_for_circle = [] 
+    K = len(points_for_circle)   
+    r=0
+    for record in reversed(points):
+        x,y,zone,p= utm.from_latlon(float(record['LAT']),float(record['LON']))
+        points_for_circle.append((x,y))
+        cx,cy,r = make_circle(points_for_circle)
+        print('le rayon',r)
+        if r > immo_range : 
+            del points_for_circle[-1]
+            break
+    K = len(points_for_circle)  
+    diftimeS=datetime.datetime.strptime(points[L-1]['date'],'%Y-%m-%d %H:%M:%S') - datetime.datetime.strptime(points[L-K]['date'],'%Y-%m-%d %H:%M:%S')
+    diftimeH=diftimeS.total_seconds()/3600
+    if diftimeH >= 24:
+        print('Immobility detected from',points[L-K]['date'])
+        detected_immo=points_for_circle
+    else:
+        print("Aucune immobilité n'a été détectée")
+    return detected_immo
 
-
-    
 
