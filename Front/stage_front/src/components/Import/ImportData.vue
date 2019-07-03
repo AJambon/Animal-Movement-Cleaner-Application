@@ -6,10 +6,11 @@
             <div class="fields">
               <label>Upload File</label><br/>
               <input id="csv-file" name="newcsv" type="file" ref="file" accept=".csv" v-on:change="onSelect()"/>
+              <!-- <button v-on:click="UpdateData">update file</button> -->
             </div>
             <div class="fields">
               <br/>
-              <button v-on:click="onSubmit()">Submit file</button>
+              <button @click="onSubmit();UpdateData()" >Submit file</button>
             </div>
             <div class="message">
               <h5>{{message}}</h5>
@@ -2599,7 +2600,7 @@
 2582,2019-5-28T05:00:00.000,45.217670,06.694880,1803,1,3D
 2583,2019-5-28T08:00:00.000,45.217490,06.696960,,,
 2584,2019-5-28T08:00:00.000,45.217810,06.697310,1369,1.2,3D</textarea>
-          <button v-on:click="mysubmit"> Import </button>
+          <button v-on:click="mysubmit();UpdateData()"> Import </button>
     </div>
 </template>
 
@@ -2620,28 +2621,37 @@ export default {
     }
   },
   methods: {
+    UpdateData () {
+      // console.log('vider les collections')
+      this.$emit('UpdateData', true)
+      // console.log('vider les collections2')
+    },
     onSelect () {
       const file = this.$refs.file.files[0] // pourquoi en 2 étapes
       this.file = file
       console.log(file)
     },
     onSubmit () { // async ?
-      const formData = new FormData() // diff let vs const ?
-      formData.append('file', this.file)
-      this.$http.post('upload',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
+      if (typeof (this.file) !== 'object') {
+        alert('First choose a file')
+      } else {
+        const formData = new FormData() // diff let vs const
+        formData.append('file', this.file)
+        this.$http.post('upload',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
           }
-        }
-      ).then((response) => {
-        console.log('SUCCESS!!')
-        this.$root.$emit('eventing', response.data)
-      })
-        .catch(function () {
-          console.log('FAILURE!!')
+        ).then((response) => {
+          console.log('SUCCESS!!')
+          this.$root.$emit('eventing', response.data)
         })
+          .catch(function () {
+            console.log('FAILURE!!')
+          })
+      }
     },
     //   try {
     //     await axios.post('/upload', formData)
