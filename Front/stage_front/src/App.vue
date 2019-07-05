@@ -11,6 +11,8 @@
         <div  v-if="displayCheckbox">
           <input id = "rd" value="rd" type="checkbox" @change="onChange($event)" v-model="checkedNames" />
           <label for="rd">Raw data</label>
+          <input id = "id" value="id" type="checkbox" @change="onChange($event)" v-model="checkedNames" />
+          <label for="id">Impossible data</label>
           <input id = "pfd" value="pfd" type="checkbox" @change="onChange($event)" v-model="checkedNames"/>
           <label for="pfd">prefiltereddata</label>
           <input id = "ed" value="ed" type="checkbox" @change="onChange($event)" v-model="checkedNames"/>
@@ -26,8 +28,6 @@
       </div>
        <input type="checkbox" id='timelinedisplay' v-model="timeline"/>
       <label for="timelinedisplay">Time line</label>
-       <!-- <input type="checkbox" id='terraintransparency' v-model="Terrain"/>
-      <label for="terraintransparency">Terrain transparency</label> -->
       <cesium-viewer :animation="animation" @Tick="Tick" :camera="camera" :fullscreenButton="fullscreenButton" :timeline="timeline" @ready="ready">
       <cesium-terrain-provider></cesium-terrain-provider>
       </cesium-viewer>
@@ -41,7 +41,7 @@ import ImportData from './components/Import/ImportData.vue'
 import Export2 from './components/Export/Export2.vue'
 import VueCesium from 'vue-cesium'
 import Vue from 'vue'
-import { debuglog } from 'util';
+// import { debuglog } from 'util';
 
 Vue.use(VueCesium, {
   // local Cesium Build package:
@@ -80,9 +80,7 @@ export default {
   methods: {
     ShowOptions (Option, value, selection) {
       if (value === Option) {
-        this.terrain = selection
-        this._myViewer.scene.globe.depthTestAgainstTerrain = selection
-        console.log('terrain',this.terrain)
+        this._myViewer.scene.globe.depthTestAgainstTerrain = selection // to remove transparency from 3D layer
       }
     },
     ShowPoints (collection, selection) {
@@ -91,32 +89,34 @@ export default {
         var p = collection.get(i)
         p.show = selection
       }
-      // this._myViewer.scene.globe.depthTestAgainstTerrain = true
     },
     onChange (event) {
       var selection = event.target.checked
       var value = event.target.value
       this.ShowOptions('3DT', value, selection)
-      if (typeof (this.myRawData) === 'undefined' || typeof (this.myEliminatedData) === 'undefined' || typeof (this.myPrefilteredData) === 'undefined' || typeof (this.myfilteredData) === 'undefined') {
+      if (typeof (this.myRawDataPrimitive) === 'undefined' || typeof (this.myEliminatedDataPrimitive) === 'undefined' || typeof (this.myPrefilteredDataPrimitive) === 'undefined' || typeof (this.myfilteredDataPrimitive) === 'undefined') {
         alert('First import data')
       } else {
         if (value === 'rd') {
-          this.ShowPoints(this.myRawData, selection)
+          this.ShowPoints(this.myRawDataPrimitive, selection)
           this.ShowPoints(this.Rawlines, selection)
         }
+        if (value === 'id') {
+          this.ShowPoints(this.myImpossibleDataPrimitive, selection)
+        }
         if (value === 'pfd') {
-          this.ShowPoints(this.myPrefilteredData, selection)
+          this.ShowPoints(this.myPrefilteredDataPrimitive, selection)
         }
         if (value === 'ed') {
-          this.ShowPoints(this.myEliminatedData, selection)
+          this.ShowPoints(this.myEliminatedDataPrimitive, selection)
         }
         if (value === 'fd') {
-          this.ShowPoints(this.myfilteredData, selection)
+          this.ShowPoints(this.myfilteredDataPrimitive, selection)
         }
       }
     },
     // function to create the points from imported data
-    createPoint (options, color, outlineColor) {
+    createPointPrimitive (options, color, outlineColor) {
       return new this._myCesium.PointPrimitive(
         {
           id: options.id,
@@ -124,53 +124,37 @@ export default {
           show: false,
           allowPicking: true,
           description: 'date et heure:' + options.date + '<BR>' + 'distance 1:' + options.distance1 + '<BR>' + 'distance 2:' + options.distance2,
-          color: color,
-          outlineColor: outlineColor,
+          color: this._myCesium.Color.fromRgba(color),
+          outlineColor: this._myCesium.Color.fromRgba(outlineColor),
           outlineWidth: 2,
           position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, options.elevation, this._myCesium.Ellipsoid.WGS84)
-          // date: this._myCesium.JulianDate.fromIso8601(options.date),
-          // label: options.id
-          // point: {
-          //   pixelSize: 5,
-          //   // color: options.status === 'pending' ? this._myCesium.Color.BLUE : options.status === 'trust' ? this._myCesium.Color.GREEN : this._myCesium.Color.RED,
-          //   color: options.status === 'retained' ? this._myCesium.Color.GREEN : options.status === 'pending' ? this._myCesium.Color.RED : this._myCesium.Color.BLUE,
-          //   outlineColor: this._myCesium.Color.WHITE,
-          //   outlineWidth: 2
-          // },
-          // label: {
-          //   text: options.id,
-          //   font: '14pt monospace',
-          //   style: this._myCesium.LabelStyle.FILL_AND_OUTLINE,
-          //   outlineWidth: 2,
-          //   verticalOrigin: this._myCesium.VerticalOrigin.BOTTOM,
-          //   pixelOffset: new this._myCesium.Cartesian2(0, -9)
-          // }
         }
       )
-      // return new this._myCesium.Entity(
-      //   {
-      //     id: options.id,
-      //     name: options.id,
-      //     description: 'date et heure:' + options.date + '<BR>' + 'distance 1:' + options.distance1 + '<BR>' + 'distance 2:' + options.distance2,
-      //     position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, 0.0, this._myCesium.Ellipsoid.WGS84),
-      //     date: this._myCesium.JulianDate.fromIso8601(options.date),
-      //     point: {
-      //       pixelSize: 5,
-      //       // color: options.status === 'pending' ? this._myCesium.Color.BLUE : options.status === 'trust' ? this._myCesium.Color.GREEN : this._myCesium.Color.RED,
-      //       color: options.status === 'trust' ? this._myCesium.Color.GREEN : options.status === 'pending' ? this._myCesium.Color.RED : this._myCesium.Color.BLUE,
-      //       outlineColor: this._myCesium.Color.WHITE,
-      //       outlineWidth: 2
-      //     },
-      //     label: {
-      //       text: options.id,
-      //       font: '14pt monospace',
-      //       style: this._myCesium.LabelStyle.FILL_AND_OUTLINE,
-      //       outlineWidth: 2,
-      //       verticalOrigin: this._myCesium.VerticalOrigin.BOTTOM,
-      //       pixelOffset: new this._myCesium.Cartesian2(0, -9)
-      //     }
-      //   }
-      // )
+    },
+    createPointEntity (options, color, outlineColor) {
+      return new this._myCesium.Entity(
+        {
+          id: options.id,
+          name: options.id,
+          description: 'date et heure:' + options.date + '<BR>' + 'distance 1:' + options.distance1 + '<BR>' + 'distance 2:' + options.distance2,
+          position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, options.elevation, this._myCesium.Ellipsoid.WGS84),
+          date: this._myCesium.JulianDate.fromIso8601(options.date),
+          point: {
+            pixelSize: 5,
+            color: this._myCesium.Color.fromRgba(color),
+            outlineColor: this._myCesium.Color.fromRgba(outlineColor),
+            outlineWidth: 2
+          },
+          label: {
+            text: options.id,
+            font: '14pt monospace',
+            style: this._myCesium.LabelStyle.FILL_AND_OUTLINE,
+            outlineWidth: 2,
+            verticalOrigin: this._myCesium.VerticalOrigin.BOTTOM,
+            pixelOffset: new this._myCesium.Cartesian2(0, -9)
+          }
+        }
+      )
     },
     CreatePolylines (collection, object) {
       // for (var i = 0; i < collection.length - 1; i++) {
@@ -215,29 +199,29 @@ export default {
     // function to display points from a set of data
     parseData (dataCollection) {
       for (var item in dataCollection) {
-        var tmpPoint = this.createPoint(dataCollection[item])
+        var tmpPoint = this.createPointPrimitive(dataCollection[item])
         this._myViewer.entities.add(tmpPoint)
       }
     },
     Tick (event) {
+      if (event.shouldAnimate && event.canAnimate) {
+        // console.log("clock play")
+      }
+
       // console.log( this._myCesium.JulianDate.toDate(event.currentTime) )
     },
     MakeListSameColor (collection, list, color) {
       for (var i = 0; i < collection.length; i++) {
         var p = collection.get(i)
-        if (p._color.toCssColorString() === color) {
+        if (p._color.toRgba() === color) {
           list.push(p)
-          //  collection.remove(p)
         }
       }
       console.log('la liste à remove', list)
     },
     DeletePoints (List, collection) {
-      // var point = ''
       for (var i = 0; i < List.length; i++) {
-        // point = collection.get(List[i])
         if (typeof (List[i]) !== 'undefined') {
-          // console.log('point',point)
           collection.remove(List[i])
         }
       }
@@ -246,16 +230,6 @@ export default {
       const { Cesium, viewer, Ellipsoid } = cesiumInstance
       this._myCesium = Cesium
       this._myViewer = viewer
-
-
-      console.log("MY VIE ")
-      console.log('terrain',this.terrain)
-      if (this.terrain === undefined){
-        this.terrain = false
-      }
-      console.log('terrain',this.terrain)
-      this._myViewer.scene.globe.depthTestAgainstTerrain = this.terrain
-
       this._myEllispoid = Ellipsoid
       var startDate = this._myCesium.JulianDate.fromIso8601('2019-05-01T23:00:00.000')
       var endDate = this._myCesium.JulianDate.fromIso8601('2019-06-01T00:00:00.000')
@@ -266,23 +240,22 @@ export default {
         // debugger
         // boucle sur les collection
         // on retrouve le point
-        // _this.myRawData._pointPrimitives.find(function(item) {  return item.id == selectPoint.id } )
-        // aprés on fait ce qu'on veut
+        // _this.myRawDataPrimitive._pointPrimitives.find(function(item) {  return item.id == selectPoint.id } )
+        // aprés on fait ce qu'on veut = mettre tous les points de cet id d'une couleur
+        
         var selectPoint = viewer.scene.pick(movement.position)
+        var selectCollection = selectPoint.collection
         // selectPoint.primitive
-        var PointColorCSS = selectPoint.primitive._color.toCssColorString()
-        debugger
-        if (PointColorCSS === '_this.myConfigCollection') {
-          // Comparer les couleurs
-          // Cesium.Color.equals(selectPoint.primitive.color, Cesium.Color.BLUE)
-          console.log('CSS', PointColorCSS)
-          console.log('RdataColor', _this.RdataColor)
-          console.log('On est dans la collection raw data')
-          // Couleur permet un lien avec la collection, donc le statut ?
-        } else {
-          console.log('on est dans une autre collection')
+        var PointColorRgba = selectPoint.primitive._color.toRgba()
+        for (var item in _this.myConfigCollection) {
+          if (selectCollection === _this.myConfigCollection[item].references) {
+            if (PointColorRgba === _this.myConfigCollection[item].defaultColor) {
+              selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].clickedColor)
+            } else {
+              selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].defaultColor)
+            }
+          }
         }
-        selectPoint.primitive.color = Cesium.Color.RED
         console.log(selectPoint.id)
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
       // key linked to cesium ion account
@@ -298,9 +271,9 @@ export default {
       //   console.log('point selectionné', SelectedPoint.id)
       /* if (entity) {
         console.log(entity)
-        console.log('data avant remove', _this.myPrefilteredData)
-        _this.myPrefilteredData.entities.remove(entity)
-        console.log('data apres remove', _this.myPrefilteredData)
+        console.log('data avant remove', _this.myPrefilteredDataPrimitive)
+        _this.myPrefilteredDataPrimitive.entities.remove(entity)
+        console.log('data apres remove', _this.myPrefilteredDataPrimitive)
       } */
       // })
       // this.parseData(dataTest, viewer, Cesium)
@@ -337,14 +310,40 @@ export default {
       this.animation = true */
     },
     remove_point () {
-      var PointToRemoveColor = 'rgb(255,0,0)'
+      var PointToRemoveColor = 4278190335 // Red points are to remove
+      var PointToRestoreColor = 4294967295
       var PointsToRemove = []
-      this.MakeListSameColor(this.myRawData, PointsToRemove, PointToRemoveColor)
-      this.DeletePoints(PointsToRemove, this.myRawData)
-      this.MakeListSameColor(this.myPrefilteredData, PointsToRemove, PointToRemoveColor)
-      this.DeletePoints(PointsToRemove, this.myPrefilteredData)
-      this.MakeListSameColor(this.myfilteredData, PointsToRemove, PointToRemoveColor)
-      this.DeletePoints(PointsToRemove, this.myfilteredData)
+      var PointToRestore = []
+      this.MakeListSameColor(this.myfilteredDataPrimitive, PointsToRemove, PointToRemoveColor)
+      this.MakeListSameColor(this.myEliminatedDataPrimitive, PointToRestore, PointToRestoreColor)
+      for (var point in PointsToRemove) {
+        this.myEliminatedDataPrimitive.add(
+          {
+            id: PointsToRemove[point]._id,
+            show: false,
+            allowPicking: true,
+            color: this._myCesium.Color.fromRgba(this.myConfigCollection.myEliminatedData.defaultColor),
+            outlineColor: this._myCesium.Color.YELLOW,
+            outlineWidth: 2,
+            position: new this._myCesium.Cartesian3(PointsToRemove[point].position.x, PointsToRemove[point].position.y, PointsToRemove[point].position.z)
+          }
+        )
+      }
+      for (var points in PointToRestore) {
+        this.myfilteredDataPrimitive.add(
+          {
+            id: PointToRestore[points]._id,
+            show: false,
+            allowPicking: true,
+            color: this._myCesium.Color.fromRgba(this.myConfigCollection.myfilteredData.defaultColor),
+            outlineColor: this._myCesium.Color.YELLOW,
+            outlineWidth: 2,
+            position: new this._myCesium.Cartesian3(PointToRestore[points].position.x, PointToRestore[points].position.y, PointToRestore[points].position.z)
+          }
+        )
+      }
+      this.DeletePoints(PointsToRemove, this.myfilteredDataPrimitive)
+      this.DeletePoints(PointToRestore, this.myEliminatedDataPrimitive)
     },
     // remove_point () {
     //   // var SelectedPoint = this._myViewer.selectedEntity
@@ -354,16 +353,16 @@ export default {
     // Function to give data from entitescollections same shape as backapp and then send it to export2
     ManageData () {
       // alert(' ok managedata')
-      if (typeof (this.myRawData) === 'undefined' || typeof (this.myEliminatedData) === 'undefined' || typeof (this.myfilteredData) === 'undefined') { // METTRE LES CONDITIONS POUR LES AUTRE
+      if (typeof (this.myRawDataPrimitive) === 'undefined' || typeof (this.myEliminatedDataPrimitive) === 'undefined' || typeof (this.myfilteredDataPrimitive) === 'undefined') { // METTRE LES CONDITIONS POUR LES AUTRE
         alert('Import data first')
       } else {
-        // console.log('je genere les data a transformer depuis managedata', this.myfilteredData.length)
+        // console.log('je genere les data a transformer depuis managedata', this.myfilteredDataPrimitive.length)
         var dataPoints = []
-        for (var i = 0; i < this.myfilteredData.length - 1; i++) {
-          var p = this.myfilteredData.get(i)
+        for (var i = 0; i < this.myfilteredDataPrimitive.length - 1; i++) {
+          var p = this.myfilteredDataPrimitive.get(i)
           debugger
-          // for (var i = 0; i < this.myfilteredData.length; i++) {
-          // var item = this.myfilteredData.values[i]
+          // for (var i = 0; i < this.myfilteredDataPrimitive.length; i++) {
+          // var item = this.myfilteredDataPrimitive.values[i]
           var curPosition = p.position
           var carto = this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(curPosition)
           var lon = this._myCesium.Math.toDegrees(carto.longitude)
@@ -385,13 +384,13 @@ export default {
     },
     cleanCollection () { // to clean everything before importing new data
       // console.log('update du front')
-      if (this.myRawData || this.myPrefilteredData || this.myEliminatedData || this.myfilteredData) {
+      if (this.myRawDataPrimitive || this.myPrefilteredDataPrimitive || this.myEliminatedDataPrimitive || this.myfilteredDataPrimitive) {
         if (confirm('You are going to loose current data, do you still want to proceed ?')) {
           // to destroy the collection and erase points from viewer
-          this.myRawData.destroy()
-          this.myPrefilteredData.destroy()
-          this.myEliminatedData.destroy()
-          this.myfilteredData.destroy()
+          this.myRawDataPrimitive.destroy()
+          this.myPrefilteredDataPrimitive.destroy()
+          this.myEliminatedDataPrimitive.destroy()
+          this.myfilteredDataPrimitive.destroy()
           // to uncheck checkboxes
           document.getElementById('rd').checked = false
           document.getElementById('pfd').checked = false
@@ -403,65 +402,86 @@ export default {
   },
   mounted () {
     var _this = this
-
     // MODIFIER AVEC THIS.EMIT DANS ImportData ET EVENT LISTENER DANS APP avec fonction https://www.telerik.com/blogs/how-to-emit-data-in-vue-beyond-the-vuejs-documentation
     _this.$root.$on('eventing', data => {
       // Creating Collections of points
       this.displayCheckbox = true
       var dates = []
-      _this.myRawData = new _this._myCesium.PointPrimitiveCollection('my raw data') // new _this._myCesium.CustomDataSource('my raw data')
-      // _this.RdataColor = this._myCesium.Color.fromCssColorString('#0000FF')
-      _this.RdataColor = 'rgb(0,0,255)'
-      // _this.RDates =
+      _this.myRawDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my raw data') // new _this._myCesium.CustomDataSource('my raw data')
+      _this.myRawDataEntity = new _this._myCesium.EntityCollection()
       // _this.RDate = new _this.myCesium.TimeIntervalCollection()
-      _this.myPrefilteredData = new _this._myCesium.PointPrimitiveCollection('my prefiltered data')
-      _this.myEliminatedData = new _this._myCesium.PointPrimitiveCollection('my eliminated data')
-      _this.myfilteredData = new _this._myCesium.PointPrimitiveCollection('my filtered data')
-      _this.Detected_immo = new _this._myCesium.PointPrimitiveCollection()
+      _this.myImpossibleDataPrimitive = new _this._myCesium.PointPrimitiveCollection()
+      _this.myPrefilteredDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my prefiltered data')
+      _this.myPrefilteredDataEntity = new _this._myCesium.EntityCollection()
+      _this.myEliminatedDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my eliminated data')
+      _this.myEliminatedDataEntity = new _this._myCesium.EntityCollection()
+      _this.myfilteredDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my filtered data')
+      _this.myfilteredDataEntity = new _this._myCesium.EntityCollection()
+      _this.Detected_immoPrimitive = new _this._myCesium.PointPrimitiveCollection()
+      _this.myConfigCollection = {
+        'myRawData': {
+          defaultColor: 4294901760,
+          clickedColor: 4278190335,
+          outlineColor: 4294967295,
+          references: _this.myRawDataPrimitive
+        },
+        'myImpossibleData': {
+          defaultColor: 4278190080,
+          outlineColor: 4294967295,
+          clickedOutlineColor: 4278255615,
+          references: _this.myImpossibleDataPrimitive
+        },
+        'myPrefilteredData': {
+          defaultColor: 4286611584,
+          clickedColor: 4278190335,
+          outlineColor: 4294967295,
+          references: _this.myPrefilteredDataPrimitive
+        },
+        'myEliminatedData': {
+          defaultColor: 4278190335,
+          clickedColor: 4294967295,
+          outlineColor: 4294967295,
+          references: _this.myEliminatedDataPrimitive
+        },
+        'myfilteredData': {
+          defaultColor: 4278222848,
+          clickedColor: 4278190335,
+          outlineColor: 4294967295,
+          references: _this.myfilteredDataPrimitive
+        }
+      }
       // To add data to points collections
       for (var itr in data[0]) {
-        _this.myRawData.add(_this.createPoint(data[0][itr], this._myCesium.Color.BLUE, this._myCesium.Color.WHITE))
+        _this.myRawDataPrimitive.add(_this.createPointPrimitive(data[0][itr], _this.myConfigCollection.myRawData.defaultColor, _this.myConfigCollection.myRawData.outlineColor))
+        _this.myRawDataEntity.add(_this.createPointEntity(data[0][itr], _this.myConfigCollection.myRawData.defaultColor, _this.myConfigCollection.myRawData.outlineColor))
         dates.push(data[0][itr]['date'])
       }
       console.log('les dates', dates)
-      console.log('la collection', _this.myRawData)
-      _this.myConfigCollection = {
-        'myRawData': {
-          color: 'rgb(0,0,255)',
-        },
-        'myEliminatedData': {
-          color: 'red',
-        },
-        'myPrefilteredData': {
-          color: 'grey',
-        },
-        'myfilteredData': {
-          color: 'green',
-        }
-      }
-
+      console.log('la collection', _this.myRawDataPrimitive)
       // debugger
       // _this.RDates = this._myCesium.TimeIntervalCollection.fromIso8601DateArray({
       //   iso8601Dates: dates
       // })
       console.log('les dates en collection', _this.RDate)
       for (var itp in data[1]) {
-        _this.myPrefilteredData.add(_this.createPoint(data[1][itp], this._myCesium.Color.GREY, this._myCesium.Color.WHITE))
+        _this.myPrefilteredDataPrimitive.add(_this.createPointPrimitive(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, _this.myConfigCollection.myPrefilteredData.outlineColor))
+        _this.myPrefilteredDataEntity.add(_this.createPointEntity(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, _this.myConfigCollection.myPrefilteredData.outlineColor))
       }
       for (var ite in data[2]) {
-        _this.myEliminatedData.add(_this.createPoint(data[2][ite], this._myCesium.Color.RED, this._myCesium.Color.WHITE))
+        _this.myImpossibleDataPrimitive.add(_this.createPointPrimitive(data[2][ite], this.myConfigCollection.myImpossibleData.defaultColor, _this.myConfigCollection.myImpossibleData.outlineColor))
       }
       for (var itf = 0; itf < data[3].length - 1; itf++) {
       //   _this.fpolylines = _this._myViewer.entities.add(new _this._myCesium.Entity()) // to create segments between consecutive points
-        _this.myfilteredData.add(_this.createPoint(data[3][itf], this._myCesium.Color.GREEN, this._myCesium.Color.WHITE)) // to create points
+        _this.myfilteredDataPrimitive.add(_this.createPointPrimitive(data[3][itf], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor)) // to create points
+        _this.myfilteredDataEntity.add(_this.createPointEntity(data[3][itf], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor))
         // To create lines
         _this.Rawlines = new _this._myCesium.PolylineCollection()
-        _this.CreatePolylines(_this.myRawData, _this.Rawlines)
+        _this.CreatePolylines(_this.myRawDataPrimitive, _this.Rawlines)
       }
       if (data[4].length > 0) {
         console.log('une immobilité a été détectée')
         for (var iti in data[4]) {
-          _this.Detected_immo.add(_this.createPoint(data[4][iti], this._myCesium.Color.WHITE, this._myCesium.Color.RED))
+          _this.Detected_immoPrimitive.add(_this.createPointPrimitive(data[4][iti], this._myCesium.Color.WHITE, this._myCesium.Color.RED))
         }
       }
     })
@@ -470,7 +490,7 @@ export default {
     // })
     // _this.$root.$on('downloadcsv', flag => {
 
-    //   console.log('je genere les data a transformer', _this.myPrefilteredData)
+    //   console.log('je genere les data a transformer', _this.myPrefilteredDataPrimitive)
     //   // TODO recuperer et transormer la collection
 
     //   this.$root.$emit('CSVtodownload', true)
