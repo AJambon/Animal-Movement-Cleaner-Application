@@ -44,7 +44,7 @@ def DataFrameManagement(objFile,WantedData):
     for i in ExpectedLabels[L:]:
         dataM.insert(len(dataM.columns),i,'')
     dataM['date'] = dataM['date'].str.replace(" ","T") #to have date in appropiate format
-    dataM['date'] = pd.to_datetime(dataM["date"]).dt.strftime('%Y-%m-%dT%H:%m:%s')
+    dataM['date'] = pd.to_datetime(dataM["date"]).dt.strftime('%Y-%m-%dT%H:%m:%S')
     dataM = dataM.sort_values(by='date',ascending=True)
     dataM = dataM.replace({'':np.NAN})
 
@@ -84,7 +84,7 @@ def init_back(request):
             # Add speed info 
             points_filtered2=Speed_algo(points_filtered1,2,50)
             detected_immo = Immobility_algo(points_filtered2,100)
-            return points_distinct,points_prefiltered,dfToListDict(eleminatedPointsdf),points_filtered2, detected_immo # ,duplicates
+            return dfToListDict(rawPointsDf),points_prefiltered,dfToListDict(eleminatedPointsdf),points_filtered2, detected_immo # ,duplicates
         else :
             return 'souci'
     else:
@@ -124,7 +124,7 @@ def parsingRequest(options,pb):
    
 def orderByDate(data):
     pFrame = pd.DataFrame(data)
-    pFrame['date'] = pd.to_datetime(pFrame["date"]).dt.strftime('%Y-%m-%dT%H:%m:%s')
+    pFrame['date'] = pd.to_datetime(pFrame["date"]).dt.strftime('%Y-%m-%dT%H:%m:%S')
     pFrame = pFrame.sort_values(by='date',ascending=True)
     pFrame = pFrame.replace({'':np.NAN})
     return pFrame 
@@ -175,18 +175,21 @@ def annotatedResult(rawPointsDf,eleminatedPointsdf,trustedPointsdf):
 #     return  points_prefiltered
 
 def findDuplicates(candidateDf):
+    # candidateDf['total'] = 0
+    # candidateDf['total'] = candidateDf.isna().sum(axis=1)
     allDuplicatedDf = candidateDf[candidateDf.duplicated(['date'],keep=False)]
     listDateGroup = allDuplicatedDf['date'].unique().tolist()
     duplicatedRowsToDelete = None
 
     for date in listDateGroup:
         currentDf = allDuplicatedDf.loc[allDuplicatedDf['date']==date]
-        currentDf.insert(len(allDuplicatedDf.columns),'total',0)
+        # currentDf.insert(len(allDuplicatedDf.columns),'total',0)
         currentDf['total'] = currentDf.isnull().sum(axis=1)
         currentDfOrdered = currentDf.sort_values(by='total',ascending=True)
         duplicatedRowsToDelete = pd.concat([currentDfOrdered[1:],duplicatedRowsToDelete])
-        if duplicatedRowsToDelete is not None:
-            duplicatedRowsToDelete = duplicatedRowsToDelete.drop(['total'] , axis=1)
+    # candidateDf.drop(['total'] , axis=1)
+    if duplicatedRowsToDelete is not None:
+        duplicatedRowsToDelete = duplicatedRowsToDelete.drop(['total'] , axis=1)
     return duplicatedRowsToDelete
 
 
@@ -274,7 +277,7 @@ def Speed_algo(points,max1,MaxSpeed):
     points[0]['speed']=0
     pointsfilteredS.append(points[0])
     for i in range(1,L):
-        diftimeS=datetime.datetime.strptime(points[i]['date'],'%Y-%m-%d %H:%M:%S') - datetime.datetime.strptime(points[i-1]['date'],'%Y-%m-%d %H:%M:%S')
+        diftimeS=datetime.datetime.strptime(points[i]['date'],'%Y-%m-%dT%H:%M:%S') - datetime.datetime.strptime(points[i-1]['date'],'%Y-%m-%dT%H:%M:%S')
         diftimeH=diftimeS.total_seconds()/3600
         if 0<points[i]['distance1']<max1: #à voir pour la distance
             speed=points[i]['distance1']/float(diftimeH)
@@ -296,12 +299,12 @@ def Immobility_algo(points,immo_range): # trouver le barycentre de points, trouv
         x,y,zone,p= utm.from_latlon(float(record['LAT']),float(record['LON']))
         points_for_circle.append((x,y))
         cx,cy,r = make_circle(points_for_circle)
-        print('le rayon',r)
+        #print('le rayon',r)
         if r > immo_range : 
             del points_for_circle[-1]
             break
     K = len(points_for_circle)  
-    diftimeS=datetime.datetime.strptime(points[L-1]['date'],'%Y-%m-%d %H:%M:%S') - datetime.datetime.strptime(points[L-K]['date'],'%Y-%m-%d %H:%M:%S')
+    diftimeS=datetime.datetime.strptime(points[L-1]['date'],'%Y-%m-%dT%H:%M:%S') - datetime.datetime.strptime(points[L-K]['date'],'%Y-%m-%dT%H:%M:%S')
     diftimeH=diftimeS.total_seconds()/3600
     if diftimeH >= 24:
         print('Immobility detected from',points[L-K]['date'])
