@@ -12,11 +12,13 @@ Installation:
 Back installation: 
 
 2/Still in the same directory, execute $ pip install virtualenv
+
 3/ Go in Back directory C:\application\stageNS\Back and 
 -	create virtual environment with python $ -m venv virtualenvironmentname  
 -	activate virtual environment with $ .\virtualenvironmentname\Scripts\activate
 -	Add the path of the virtual environment folder in the gitignore file
 -	Dependencies installation with $ python setup.py develop
+
 4/ Go in the directory named telemetry2 with $ cd telemetry2
 -	 execute $ pserve development.ini
 
