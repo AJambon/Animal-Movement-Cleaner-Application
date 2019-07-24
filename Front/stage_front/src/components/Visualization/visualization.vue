@@ -1,6 +1,6 @@
 <template>
   <div>
-    <!-- <h1>Bienvenue dans le nouvel outil Hello world !</h1> -->
+    <h1>Animal Movement Cleaner application</h1>
   </div>
 </template>
 
