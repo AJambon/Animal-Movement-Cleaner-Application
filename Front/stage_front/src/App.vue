@@ -81,12 +81,13 @@ export default {
     // Function that enables to update current time when selected by hand
     onTimelineScrubfunction (e) {
       this._myViewer.clock.currentTime = e.timeJulian
-      console.log(" set time ", this.lastestIndexFind)
+      // console.log(" set time ", this.lastestIndexFind)
       this.hideEntity(this.currentCollection,this.lastestIndexFind)
+      this.displayedIndex = []
       var indexFinded = this.findNearIndexToDisplay(this.currentCollection, this._myViewer.clock.currentTime)
-      console.log(" ON A TROUVE ",indexFinded)
+      // console.log(" ON A TROUVE ",indexFinded)
       if (indexFinded > -1) {
-         this.drawEntity(this.currentCollection, indexFinded, indexFinded)
+        this.drawEntity(this.currentCollection, indexFinded, indexFinded)
       }
       // this.initPlayer()
       //cacher les points affichéf
@@ -398,6 +399,8 @@ export default {
     },
     initPlayer() {
       this.lastestIndexFind = -1
+      this.normal = 0
+      this.reverse = 0
       this.displayedIndex = []
       this.maxHistory = 10
       this.maxPolylines = 2
@@ -411,7 +414,6 @@ export default {
       var arrCollection = collection.entities.values
       var startingIndexSeconds = -1
       var matchedIndex = -1
-
       for (var i = startingIndex ; i < arrCollection.length ; i ++) {
         var entityDate = arrCollection[i].date
 
@@ -432,8 +434,57 @@ export default {
           break
         }
       }
-
-
+      if ( startingIndexSeconds > -1 ) {
+        if ( arrCollection[startingIndexSeconds].date.dayNumber < date.dayNumber ) {//special case
+            matchedIndex = startingIndexSeconds
+        }  
+        else {
+          for ( var j = startingIndexSeconds; j < arrCollection.length ; j ++) {
+            var entityDate = arrCollection[j].date
+            if ( entityDate.secondsOfDay <= date.secondsOfDay && entityDate.dayNumber <= date.dayNumber) {
+              matchedIndex = j
+            }
+            else {
+              break
+            }
+          }
+        }
+      }
+      else {
+        console.log("something goes wrong we should not be there")
+      }
+      if (matchedIndex == -1 ) {
+        return startingIndexSeconds
+      }
+      else {
+        return matchedIndex
+      }
+    },
+    findNearIndexToDisplayBackwards(collection, date) {
+      console.log("on est dans le passé")
+      var startingIndex = 0
+      var arrCollection = collection.entities.values
+      var startingIndexSeconds = -1
+      var matchedIndex = -1
+      for (var i = startingIndex ; i < arrCollection.length ; i ++) {
+        var entityDate = arrCollection[i].date
+        if ( entityDate.dayNumber <= date.dayNumber ) {
+          if ( entityDate.dayNumber < date.dayNumber) {
+            startingIndexSeconds = i
+          }
+          if ( entityDate.dayNumber == date.dayNumber )  {
+            if ( entityDate.secondsOfDay <= date.secondsOfDay) {
+            startingIndexSeconds = i
+            }
+            else {
+              break
+            }
+          }
+        }
+        else {
+          break
+        }
+      }
       if ( startingIndexSeconds > -1 ) {
         if ( arrCollection[startingIndexSeconds].date.dayNumber < date.dayNumber ) {//special case
             matchedIndex = startingIndexSeconds
@@ -460,8 +511,6 @@ export default {
       else {
         return matchedIndex
       }
-
-
     },
     findIndexToDisplay(collection, date) {
       var startingIndex = 0
@@ -514,6 +563,19 @@ export default {
         this.displayedIndex.unshift(index)
       }
     },
+    // storeHistoryReverse(index){
+    //   if( this.displayedIndex.length >= this.maxHistory ) { // tableau plein
+    //       this.displayedIndex.shift() // enlève l'élément d'index le plus bas
+    //       //hide entity
+    //   }
+    //   if ( this.displayedIndex.length > 0 ) {
+    //     if( this.displayedIndex[0] != index ) { // to only have different indexes
+    //       this.displayedIndex.push(index) // to add a new element with index max
+    //     }
+    //   } else {
+    //     this.displayedIndex.push(index)
+    //   }
+    // },
     drawPolylines(nbToDraw) {
       var nbPolyLinesDraw = 0
       var nbToDel = this._myViewer.entities.values.length - this.maxPolylines
@@ -566,23 +628,52 @@ export default {
       }
       this.lastestIndexFind = endingIndex
     },
+    drawEntityReverse(collection, minIndex, maxIndex ) {
+      for (var i = maxIndex; i >= minIndex; i--) {
+        this.storeHistory(i)
+        collection.entities.values[i].show = true
+        if (this.displayedIndex.length > 1) {
+          var nbLinesToDraw = -1 // equals nb lines to draw - 1 because Starting index = lastIndexFind+1
+          nbLinesToDraw = maxIndex - minIndex
+          this.drawPolylines(nbLinesToDraw)
+        }
+      }
+      this.lastestIndexFind = minIndex
+    },
     hideEntity(collection, index) {
       var arrCollection = collection.entities.values
       for( var i = 0; i <= index; i++ ) {
         arrCollection[i].show = false
       }
     },
-    player(collection,date) {
-      var indexFinded = this.findIndexToDisplay(collection, date)
-      if (indexFinded > -1 ) {
-        if ( this.lastestIndexFind == -1 ) {
-          this.drawEntity(collection, 0, indexFinded) 
-        } else {
-          this.hideEntity(collection, this.lastestIndexFind)
-          this.drawEntity(collection, this.lastestIndexFind+1, indexFinded)
+    hideEntityReverse(collection, index) {
+      var arrCollection = collection.entities.values
+      for( var i = index; i >= 0; i-- ) {
+        arrCollection[i].show = false
+      }
+    },
+    player(collection,date) { 
+      if (this._myViewer.clock._multiplier > 0) {
+        var indexFinded = this.findIndexToDisplay(collection, date)
+        if (indexFinded > -1 ) {
+          if ( this.lastestIndexFind == -1 ) {
+            this.drawEntity(collection, 0, indexFinded) 
+          } else {
+            this.hideEntity(collection, this.lastestIndexFind)
+            this.drawEntity(collection, this.lastestIndexFind+1, indexFinded)
+          }
+        }
+      } else {
+        var indexFinded = this.findNearIndexToDisplay(collection, date)
+        if (indexFinded > -1 ) {
+          if ( this.lastestIndexFind == -1 ) {
+            console.log('on peut pas reverse depuis le début') 
+          } else {
+            this.hideEntityReverse(collection, this.lastestIndexFind)
+            this.drawEntityReverse(collection, indexFinded, this.lastestIndexFind-1)
+          }
         }
       }
-
     },
     displayEntity(collection, matchedIndex, latestIndex) {
       for( var j = 0 ; j < matchedIndex ; j++ ) {
@@ -602,6 +693,19 @@ export default {
     Tick (event) {
       if (event.shouldAnimate && event.canAnimate) {
         var date = event._currentTime
+        if (this._myViewer.clock._multiplier > 0) {
+          if (this.normal = 0) {
+            this.displayedIndex = []
+          }
+          this.normal = 1
+          this.reverse = 0
+        } else {
+          if (this.reverse = 0) {
+            this.displayedIndex = []
+          }
+          this.reverse = 1
+          this.normal = 0
+        }
         switch (this.collectiontoplay) {
           case 'rd': {
             this.player(this.myRawDataEntity, date)
