@@ -20,8 +20,8 @@ requires = [
     'SQLAlchemy',
     'transaction',
     'zope.sqlalchemy',
-    'vincenty'
-    'utm'
+    'vincenty',
+    'utm',
     'pandas'
 ]
 
