@@ -1,32 +1,47 @@
 <template>
   <div id="app">
     <visualization></visualization>
+    <Parameters></Parameters>
     <ImportData @UpdateData='cleanCollection'></ImportData>
     <Export @downloadcsv='ManageData'></Export>
     <div class="viewer" ref="myViewer">
+      <!-- <div id="immo" v-if="immobility">
+        <b-alert>An immobility has been detected</b-alert>
+      </div> -->
       <div id="interact_data" class="demo-tool">
         <div id='primitive' v-if="displayCheckbox">
-          <input id = "rd" value="rd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-          <label for="rd">Raw data</label>
-          <input id = "id" value="id" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-          <label for="id">Impossible data</label>
-          <input id = "pfd" value="pfd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-          <label for="pfd">prefiltereddata</label>
-          <input id = "ed" value="ed" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-          <label for="ed">eliminateddata</label>
-          <input id = "fd" value="fd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-          <label for="fd">filtereddata</label>
+          <b-form-group label="Choose the collection to display">
+            <input id = "rd" value="rd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
+            <label for="rd">Raw data</label>
+            <input id = "ipd" value="ipd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
+            <label for="ipd">Impossible data</label>
+            <input id = "pfd" value="pfd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
+            <label for="pfd">Prefiltered data</label>
+            <input id = "ed" value="ed" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
+            <label for="ed">Eliminated data</label>
+            <input id = "fd" value="fd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
+            <label for="fd">Filtered data</label>
+            <input id = "id" value="id" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
+            <label for="id">Immobility Data</label>
+            <input id = "cd" value="cd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
+            <label for="cd">Clean data</label>
+          </b-form-group>
           <button v-on:click="remove_point" >Remove point</button>
         </div>
         <div id='player' v-if="displayCheckbox">
-          <input id = "rd" value="rd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-          <label for="rd">Raw data</label>
-          <input id = "pfd" value="pfd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-          <label for="pfd">prefiltereddata</label>
-          <input id = "ed" value="ed" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-          <label for="ed">eliminateddata</label>
-          <input id = "fd" value="fd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-          <label for="fd">filtereddata</label>
+          <b-form-group label="Choose the collection to display with the player">
+            <input id = "rd" value="rd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
+            <label for="rd">Raw data</label>
+            <input id = "pfd" value="pfd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
+            <label for="pfd">Prefiltered data</label>
+            <input id = "ed" value="ed" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
+            <label for="ed">Eliminated data</label>
+            <input id = "fd" value="fd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
+            <label for="fd">Filtered data</label>
+            <input id = "cd" value="cd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
+            <label for="cd">Clean data</label>
+            <!-- <b-form-radio-group id="btn-radios-1" v-model="picked" :options="entitycoll" buttons name="display_coll" @change="collectionToAnimate($event)"></b-form-radio-group> -->
+          </b-form-group>
         </div>
         <div id='params'>
           <input id = "3DT" value="3DT" type="checkbox" @change="displayTransparency($event)"/>
@@ -44,6 +59,7 @@
 import visualization from './components/Visualization/visualization.vue'
 import ImportData from './components/Import/ImportData.vue'
 import Export from './components/Export/Export.vue'
+import Parameters from './components/Parameters/Parameters.vue'
 import VueCesium from 'vue-cesium'
 import Vue from 'vue'
 
@@ -54,7 +70,8 @@ export default {
   components: {
     visualization,
     ImportData,
-    Export
+    Export,
+    Parameters
   },
   data () {
     // Cesium.BingMapsApi.defaultKey = 'AgqG7d1hd0psBdMyO3kPG8COGLUqA7knynwLSBkjiBRAnvRfOaOv1ZEl3GsDutjC'// ma key
@@ -74,23 +91,28 @@ export default {
       },
       displayCheckbox: false,
       mySelectedPoints: [],
-      picked: []
+      picked: [],
+      // entitycoll: [
+      //   { text: 'Raw data', value: 'rd' },
+      //   { text: 'Prefiltered data', value: 'pfd' },
+      //   { text: 'Eliminated data', value: 'ed' },
+      //   { text: 'Filtered data', value: 'fd' }
+      // ],
+      immobility: false
     }
   },
   methods: {
     // Function that enables to update current time when selected by hand
     onTimelineScrubfunction (e) {
       this._myViewer.clock.currentTime = e.timeJulian
-      // console.log(" set time ", this.lastestIndexFind)
-      this.hideEntity(this.currentCollection,this.lastestIndexFind)
+      this.hideEntity(this.currentCollection, this.lastestIndexFind)
       this.displayedIndex = []
       var indexFinded = this.findNearIndexToDisplay(this.currentCollection, this._myViewer.clock.currentTime)
-      // console.log(" ON A TROUVE ",indexFinded)
       if (indexFinded > -1) {
         this.drawEntity(this.currentCollection, indexFinded, indexFinded)
       }
       // this.initPlayer()
-      //cacher les points affichéf
+      // cacher les points affichés
       // this._myViewer.clock.shouldAnimate = false    A VOIR AVEC LE PLAYER CE QUI SERA LE PLUS PRATIQUE
     },
     // Function to create timeline div, timeline and timeline zoom
@@ -102,7 +124,7 @@ export default {
       let timeline = new this._myCesium.Timeline(timelineContainer, this._myViewer.clock)
       timeline.addEventListener('settime', this.onTimelineScrubfunction, false)
       this._myViewer._timeline = timeline
-      this._myViewer.timeline.zoomTo(startDate, endDate) 
+      this._myViewer.timeline.zoomTo(startDate, endDate)
     },
     // Function to destroy timeline and timeline div if exist
     customDestroyTimeline () {
@@ -118,19 +140,49 @@ export default {
     },
     // Function to zoom on timeline according to collection's min and max dates
     timelineZoom (minAndMaxDate, selection) {
-      if( minAndMaxDate.minDate.dayNumber == null || minAndMaxDate.maxDate.dayNumber == null ) {
+      if (minAndMaxDate.minDate.dayNumber === null || minAndMaxDate.maxDate.dayNumber === null) {
         this.customDestroyTimeline()
-      }
-      else {
+      } else {
         this.animation = selection
         this.timeline = selection
-        var startDate = new this._myCesium.JulianDate(minAndMaxDate.minDate.dayNumber , minAndMaxDate.minDate.secondsOfDay )
-        var endDate = new this._myCesium.JulianDate(minAndMaxDate.maxDate.dayNumber , minAndMaxDate.maxDate.secondsOfDay )
-        if ((!this._myCesium.defined(this._myViewer.timeline) || this._myViewer.timeline.isDestroyed()) && this.timeline == true) {
-          this.customCreateTimeline (startDate, endDate) 
+        var startDate = new this._myCesium.JulianDate(minAndMaxDate.minDate.dayNumber, minAndMaxDate.minDate.secondsOfDay)
+        var endDate = new this._myCesium.JulianDate(minAndMaxDate.maxDate.dayNumber, minAndMaxDate.maxDate.secondsOfDay)
+        if ((!this._myCesium.defined(this._myViewer.timeline) || this._myViewer.timeline.isDestroyed()) && this.timeline === true) {
+          this.customCreateTimeline(startDate, endDate)
           // this._myViewer._forceResize = true
           // this._myViewer.resize()
         }
+      }
+    },
+    zoomToPrimitive (collection) {
+      var maxLat = -200
+      var minLat = 200
+      var maxLon = -200
+      var minLon = 200
+      if (collection.length > 0) {
+        // loop to find most extreme points most eastern (min longitude), most Northern (max latitude)...
+        for (var i = 0; i < collection.length; i++) {
+          var pos = this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(collection._pointPrimitives[i]._position)
+          var x = this._myCesium.Math.toDegrees(pos.latitude)
+          if (x < minLat) {
+            minLat = x
+          }
+          if (x > maxLat) {
+            maxLat = x
+          }
+          var y = this._myCesium.Math.toDegrees(pos.longitude)
+          if (y < minLon) {
+            minLon = y
+          }
+          if (y > maxLon) {
+            maxLon = y
+          }
+        }
+        this._myViewer.camera.flyTo({
+          destination: this._myCesium.Rectangle.fromDegrees(minLon - 0.5, minLat - 0.5, maxLon + 0.5, maxLat + 0.5)
+        })
+      } else {
+        alert('collection is empty')
       }
     },
     // Linked to checkbox Terrain transparency and permit to display and remove transparency of 3D layer
@@ -146,16 +198,23 @@ export default {
     //   }
     // },
     // Function linked to checkboxes to hide and show primitive collections
-    cleanPlayer() {
+    cleanPlayer () {
       var allcheckbox = document.querySelectorAll('div#player input')
-      for (var i = 0 ; i < allcheckbox.length ; i++ ) {
+      for (var i = 0; i < allcheckbox.length; i++) {
         allcheckbox[i].checked = false
       }
-      if(this._myViewer.dataSources.length) {
+      if (this._myViewer.dataSources.length) {
         this._myViewer.dataSources.removeAll()
       }
       this._myViewer.entities.removeAll()
       this.customDestroyTimeline()
+    },
+    CleanMap (collection) {
+      for (var i = 0; i < this._myViewer.scene.primitives._primitives.length; i++) {
+        if (this._myViewer.scene.primitives._primitives[i] === collection) {
+          this._myViewer.scene.primitives._primitives.splice(i, 1)
+        }
+      }
     },
     onCheckboxCollectionChange (event) {
       var selection = event.target.checked
@@ -163,45 +222,65 @@ export default {
       this.cleanPlayer()
       switch (this.lastCheckBoxChecked) {
         case 'rd': {
-          console.log(this.myRawDataPrimitive)
-          if(selection === false) {
-            this._myViewer.scene.primitives.remove(this.myRawDataPrimitive)
+          if (selection === false) {
+            this.CleanMap(this.myRawDataPrimitive)
           } else {
-            console.log('on add')
             this._myViewer.scene.primitives.add(this.myRawDataPrimitive)
+            this.zoomToPrimitive(this.myRawDataPrimitive)
           }
           break
         }
-        case 'id': {
-          if(selection === false) {
-            this._myViewer.scene.primitives.remove(this.myRawDataPrimitive)
+        case 'ipd': {
+          if (selection === false) {
+            this.CleanMap(this.myImpossibleDataPrimitive)
           } else {
-            this._myViewer.scene.primitives.add(this.myRawDataPrimitive)
+            this._myViewer.scene.primitives.add(this.myImpossibleDataPrimitive)
+            this.zoomToPrimitive(this.myImpossibleDataPrimitive)
           }
           break
         }
         case 'pfd': {
-          this._myViewer.scene.primitives.add(this.myPrefilteredDataPrimitive)
-          if(selection === false) {
-            this._myViewer.scene.primitives.show = false
+          if (selection === false) {
+            this.CleanMap(this.myPrefilteredDataPrimitive)
           } else {
-            
+            this._myViewer.scene.primitives.add(this.myPrefilteredDataPrimitive)
+            this.zoomToPrimitive(this.myPrefilteredDataPrimitive)
           }
           break
         }
         case 'ed': {
-          if(selection === false) {
-            this._myViewer.scene.primitives.remove(this.myEliminatedDataPrimitive)
+          if (selection === false) {
+            this.CleanMap(this.myEliminatedDataPrimitive)
           } else {
             this._myViewer.scene.primitives.add(this.myEliminatedDataPrimitive)
+            this.zoomToPrimitive(this.myEliminatedDataPrimitive)
           }
           break
         }
         case 'fd': {
-          if(selection === false) {
-            this._myViewer.scene.primitives.remove(this.myfilteredDataPrimitive)
+          if (selection === false) {
+            this.CleanMap(this.myfilteredDataPrimitive)
           } else {
             this._myViewer.scene.primitives.add(this.myfilteredDataPrimitive)
+            this.zoomToPrimitive(this.myfilteredDataPrimitive)
+          }
+          break
+        }
+        case 'id': {
+          if (selection === false) {
+            this.CleanMap(this.myDetected_immoPrimitive)
+          } else {
+            this._myViewer.scene.primitives.add(this.myDetected_immoPrimitive)
+            this.zoomToPrimitive(this.myDetected_immoPrimitive)
+          }
+          break
+        }
+        case 'cd': {
+          if (selection === false) {
+            this.CleanMap(this.myCleanDataPrimitive)
+          } else {
+            this._myViewer.scene.primitives.add(this.myCleanDataPrimitive)
+            this.zoomToPrimitive(this.myCleanDataPrimitive)
           }
           break
         }
@@ -210,10 +289,50 @@ export default {
           break
         }
       }
-
+    },
+    getElevation (Lat, Lon, Height) {
+      // var carto = this._myCesium.Cartographic.fromDegrees(Lon, Lat)
+      // var position = new this._myCesium.Cartographic(carto.longitude, carto.latitude)
+      // var height = this._myViewer.scene.sampleHeight(position)
+      // console.log(height)
+      // debugger
+      // var elevation = null
+      // var originalHeight = Height
+      // Construct the default list of terrain sources.
+      // var terrainModels = Cesium.createDefaultTerrainProviderViewModels();
+      // // Construct the viewer, with a high-res terrain source pre-selected.
+      // var viewer = new Cesium.Viewer('cesiumContainer', {
+      //   terrainProviderViewModels: terrainModels,
+      //   selectedTerrainProviderViewModel: terrainModels[1]  // Select STK High-res terrain
+      // });
+      // // Get a reference to the ellipsoid, with terrain on it.  (This API may change soon)
+      // var ellipsoid = viewer.scene.globe.ellipsoid;
+      // // Specify our point of interest.
+      // var pointOfInterest = Cesium.Cartographic.fromDegrees(-99.64592791446208, 61.08658108795938, 5000, new Cesium.Cartographic())
+      // // Sample the terrain (async) and write the answer to the console.
+      // Cesium.sampleTerrain(viewer.terrainProvider, 9, [ pointOfInterest ])
+      // .then(function(samples) {
+      //   //console.log('Height in meters is: ' + samples[0].height);
+      // })
+      // var terrainProvider = this._myViewer.terrainProvider
+      // var position = [
+      //   this._myCesium.Cartographic.fromDegrees(Lon, Lat)
+      // ]
+      // // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
+      // var promise = this._myCesium.sampleTerrain(terrainProvider, 2, position)
+      // this._myCesium.when(promise, function (updatedPositions) {
+      //   elevation = position[0].height
+      //   return 3000
+      //   // console.log('elevation', position[0].height)
+      // })
+      // console.log('elevation', elevation)
     },
     // functions to create the points primitives from imported data
     createPointPrimitive (options, color, outlineColor) {
+      // console.log('id', options.id)
+      // var newHeight = this.getElevation(options.LAT, options.LON,3000)
+      // console.log("point",options)
+      // console.log("height",newHeight)
       return new this._myCesium.PointPrimitive(
         {
           id: options.id,
@@ -223,6 +342,7 @@ export default {
           outlineColor: this._myCesium.Color.fromRgba(outlineColor),
           outlineWidth: 2,
           position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, options.elevation, this._myCesium.Ellipsoid.WGS84)
+          // position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, this.getElevation(options.LAT, options.LON, options.elevation), this._myCesium.Ellipsoid.WGS84)
         }
       )
     },
@@ -279,7 +399,7 @@ export default {
     },
     // Function to get time period of a collection
     getMinMaxDate (collectionEntity) {
-      var collectionEntity = collectionEntity.entities
+      var ncollectionEntity = collectionEntity.entities
       var minDate = {
         dayNumber: null,
         secondsOfDay: null
@@ -288,15 +408,15 @@ export default {
         dayNumber: null,
         secondsOfDay: null
       }
-      if (collectionEntity.values.length > 0) {
-        var firstItem = collectionEntity.values[0]
+      if (ncollectionEntity.values.length > 0) {
+        var firstItem = ncollectionEntity.values[0]
         minDate.dayNumber = firstItem._date.dayNumber
         minDate.secondsOfDay = firstItem._date.secondsOfDay
         maxDate.dayNumber = firstItem._date.dayNumber
         maxDate.secondsOfDay = firstItem._date.secondsOfDay
-        for (var item in collectionEntity.values) {
-          var curDay = collectionEntity.values[item]._date.dayNumber
-          var curSeconds = collectionEntity.values[item]._date.secondsOfDay
+        for (var item in ncollectionEntity.values) {
+          var curDay = ncollectionEntity.values[item]._date.dayNumber
+          var curSeconds = ncollectionEntity.values[item]._date.secondsOfDay
           // get min date
           if (curDay <= minDate.dayNumber) {
             minDate.dayNumber = curDay
@@ -305,7 +425,7 @@ export default {
             }
           }
           // get max date
-          if (curDay > maxDate.dayNumber) { // if max day changes, we have to rebegin seconds comparison to take the matching max seconds 
+          if (curDay > maxDate.dayNumber) { // if max day changes, we have to rebegin seconds comparison to take the matching max seconds
             maxDate.dayNumber = curDay
             maxDate.secondsOfDay = curSeconds
           }
@@ -317,44 +437,36 @@ export default {
           }
         }
       }
+      // Add some seconds so the last point can be displayed
+      minDate.secondsOfDay -= 3600
+      maxDate.secondsOfDay += 3600
       return {
         minDate,
         maxDate
       }
-    },
-    // SERT A RIEN POUR LE MOMENT
-    DisplayPoint (collectionEntity, startDate, endDate) {
-      var animationpoint = model.activeAnimations.add({
-        name: 'DisplayPoints',
-        startTime: startDate,
-        delay: 0.0, // Play at startTime (default)
-        stopTime: endDate,
-        removeOnStop: false, // Do not remove when animation stops (default)
-        multiplier: 2.0, // Play at double speed
-        reverse: true, // Play in reverse
-        loop: this._myCesium.ModelAnimationLoop.REPEAT // Loop the animation
-      })
-
-      // for(var point in collectionEntity) {
-      //   if point.date ==
-      // }
     },
     // Function to set the clock
     setClockTime (minAndMaxDate) {
       this._myViewer.clock.startTime = minAndMaxDate.minDate
       this._myViewer.clock.stopTime = minAndMaxDate.maxDate
       this._myViewer.clock.currentTime = minAndMaxDate.minDate
-      this._myViewer.clock.clockRange = this._myCesium.ClockRange.CLAMPED 
+      this._myViewer.clock.clockRange = this._myCesium.ClockRange.CLAMPED
     },
-    // Function to animate entity collection 
+    // Function to animate entity collection
     collectionToAnimate (event) {
       var selection = event.target.checked
       var value = event.target.value
       // Hide primitive collections
-      this._myViewer.scene.primitives.removeAll()
+      this.CleanMap(this.myRawDataPrimitive)
+      this.CleanMap(this.myImpossibleDataPrimitive)
+      this.CleanMap(this.myPrefilteredDataPrimitive)
+      this.CleanMap(this.myEliminatedDataPrimitive)
+      this.CleanMap(this.myfilteredDataPrimitive)
+      this.CleanMap(this.myDetected_immoPrimitive)
+      this.CleanMap(this.myCleanDataPrimitive)
       // Uncheck all the checkboxes
       var allcheckbox = document.querySelectorAll('div#primitive input')
-      for (var i = 0 ; i < allcheckbox.length ; i++ ) {
+      for (var i = 0; i < allcheckbox.length; i++) {
         allcheckbox[i].checked = false
       }
       this.collectiontoplay = value
@@ -362,7 +474,7 @@ export default {
       this.currentCollection = null
       // config of timeline
       var minAndMaxDate = {}
-      if(this._myViewer.dataSources.length) {
+      if (this._myViewer.dataSources.length) {
         this._myViewer.dataSources.removeAll()
       }
       switch (this.collectiontoplay) {
@@ -375,7 +487,6 @@ export default {
           break
         }
         case 'pfd': {
-          debugger
           minAndMaxDate = this.getMinMaxDate(this.myPrefilteredDataEntity)
           this.timelineZoom(minAndMaxDate, selection)
           this.setClockTime(minAndMaxDate)
@@ -391,13 +502,21 @@ export default {
           this._myViewer.dataSources.add(this.myfilteredDataEntity)
           break
         }
+        case 'cd': {
+          minAndMaxDate = this.getMinMaxDate(this.myCleanDataEntity)
+          this.timelineZoom(minAndMaxDate, selection)
+          this.setClockTime(minAndMaxDate)
+          this.currentCollection = this.myCleanDataEntity
+          this._myViewer.dataSources.add(this.myCleanDataEntity)
+          break
+        }
         default: {
           console.log('should never be here')
           break
         }
       }
     },
-    initPlayer() {
+    initPlayer () {
       this.lastestIndexFind = -1
       this.normal = 0
       this.reverse = 0
@@ -405,192 +524,150 @@ export default {
       this.maxHistory = 10
       this.maxPolylines = 2
       this.polylineCollection = new this._myCesium.PolylineCollection()
-      if ( this.currentCollection ) {
-        this.hideEntity(this.currentCollection,this.currentCollection.entities.values.length-1)
+      if (this.currentCollection) {
+        this.hideEntity(this.currentCollection, this.currentCollection.entities.values.length - 1)
       }
     },
-    findNearIndexToDisplay(collection, date) {
+    // Function to find point to display when time is set with mouse and event settime
+    findNearIndexToDisplay (collection, date) {
       var startingIndex = 0
       var arrCollection = collection.entities.values
       var startingIndexSeconds = -1
       var matchedIndex = -1
-      for (var i = startingIndex ; i < arrCollection.length ; i ++) {
-        var entityDate = arrCollection[i].date
-
-        if ( entityDate.dayNumber <= date.dayNumber ) {
-          if ( entityDate.dayNumber < date.dayNumber) {
+      for (var i = startingIndex; i < arrCollection.length; i++) {
+        var entityDateDay = arrCollection[i].date
+        if (entityDateDay.dayNumber <= date.dayNumber) {
+          if (entityDateDay.dayNumber < date.dayNumber) {
             startingIndexSeconds = i
           }
-          if ( entityDate.dayNumber == date.dayNumber )  {
-            if ( entityDate.secondsOfDay <= date.secondsOfDay) {
-            startingIndexSeconds = i
-            }
-            else {
+          if (entityDateDay.dayNumber === date.dayNumber) {
+            if (entityDateDay.secondsOfDay <= date.secondsOfDay) {
+              startingIndexSeconds = i
+            } else {
               break
             }
           }
-        }
-        else {
+        } else {
           break
         }
       }
-      if ( startingIndexSeconds > -1 ) {
-        if ( arrCollection[startingIndexSeconds].date.dayNumber < date.dayNumber ) {//special case
-            matchedIndex = startingIndexSeconds
-        }  
-        else {
-          for ( var j = startingIndexSeconds; j < arrCollection.length ; j ++) {
-            var entityDate = arrCollection[j].date
-            if ( entityDate.secondsOfDay <= date.secondsOfDay && entityDate.dayNumber <= date.dayNumber) {
+      if (startingIndexSeconds > -1) {
+        if (arrCollection[startingIndexSeconds].date.dayNumber < date.dayNumber) { // special case
+          matchedIndex = startingIndexSeconds
+        } else {
+          for (var j = startingIndexSeconds; j < arrCollection.length; j++) {
+            var entityDateSec = arrCollection[j].date
+            if (entityDateSec.secondsOfDay <= date.secondsOfDay && entityDateSec.dayNumber <= date.dayNumber) {
               matchedIndex = j
-            }
-            else {
+            } else {
               break
             }
           }
         }
+      } else {
+        console.log('something goes wrong we should not be there')
       }
-      else {
-        console.log("something goes wrong we should not be there")
-      }
-      if (matchedIndex == -1 ) {
+      if (matchedIndex === -1) {
         return startingIndexSeconds
-      }
-      else {
+      } else {
         return matchedIndex
       }
     },
-    findNearIndexToDisplayBackwards(collection, date) {
-      console.log("on est dans le passé")
-      var startingIndex = 0
-      var arrCollection = collection.entities.values
-      var startingIndexSeconds = -1
-      var matchedIndex = -1
-      for (var i = startingIndex ; i < arrCollection.length ; i ++) {
-        var entityDate = arrCollection[i].date
-        if ( entityDate.dayNumber <= date.dayNumber ) {
-          if ( entityDate.dayNumber < date.dayNumber) {
-            startingIndexSeconds = i
-          }
-          if ( entityDate.dayNumber == date.dayNumber )  {
-            if ( entityDate.secondsOfDay <= date.secondsOfDay) {
-            startingIndexSeconds = i
-            }
-            else {
-              break
-            }
-          }
-        }
-        else {
-          break
-        }
-      }
-      if ( startingIndexSeconds > -1 ) {
-        if ( arrCollection[startingIndexSeconds].date.dayNumber < date.dayNumber ) {//special case
-            matchedIndex = startingIndexSeconds
-        }  
-        else {
-          for ( var j = startingIndexSeconds; j < arrCollection.length ; j ++) {
-            var entityDate = arrCollection[j].date
-            if ( entityDate.secondsOfDay <= date.secondsOfDay && entityDate.dayNumber <= date.dayNumber) {
-              matchedIndex = j
-            }
-            else {
-              break
-            }
-          }
-        }
-      }
-      else {
-        console.log("something goes wrong we should not be there")
-      }
-
-      if (matchedIndex == -1 ) {
-        return startingIndexSeconds
-      }
-      else {
-        return matchedIndex
-      }
-    },
-    findIndexToDisplay(collection, date) {
-      var startingIndex = 0
-      if ( this.lastestIndexFind > -1) {
-         startingIndex = this.lastestIndexFind
+    // Function to find point to display when animation is set to reverse
+    findIndexToDisplayReverse (collection, date) {
+      if (this.lastestIndexFind > -1) {
+        var startingIndex = this.lastestIndexFind
       }
       var arrCollection = collection.entities.values
       var startingIndexSeconds = -1
       var matchedIndex = -1
-
-
-      for (var i = startingIndex ; i < arrCollection.length ; i ++) {
-        var entityDate = arrCollection[i].date
-        if ( entityDate.dayNumber === date.dayNumber ) {
+      for (var i = startingIndex; i >= 0; i--) {
+        var entityDateDay = arrCollection[i].date
+        if (entityDateDay.dayNumber === date.dayNumber) {
           startingIndexSeconds = i
           break
         }
       }
-
-      if ( startingIndexSeconds > -1 ) {
-        for ( var j = startingIndexSeconds; j < arrCollection.length ; j ++) {
-          var entityDate = arrCollection[j].date
-
-          if ( entityDate.secondsOfDay <= date.secondsOfDay && entityDate.dayNumber <= date.dayNumber) {
+      if (startingIndexSeconds > -1) {
+        for (var j = startingIndexSeconds; j >= 0; j--) {
+          var entityDateSec = arrCollection[j].date
+          if (entityDateSec.secondsOfDay >= date.secondsOfDay && entityDateSec.dayNumber >= date.dayNumber) {
             matchedIndex = j
-          }
-          else {
+          } else {
             break
           }
         }
+      } else {
+        console.log('something goes wrong we should not be there')
       }
-      else {
-        console.log("something goes wrong we should not be there")
-      }
-      if (matchedIndex == this.lastestIndexFind ) {
+      if (matchedIndex === this.lastestIndexFind) {
         return -1
       }
       return matchedIndex
     },
-    storeHistory(index){
-      if( this.displayedIndex.length >= this.maxHistory ) { // tableau plein
-          this.displayedIndex.pop() // enlève l'élément d'index le plus haut
-          //hide entity
+    // Function to find point to display when starts from beginning
+    findIndexToDisplay (collection, date) {
+      var startingIndex = 0
+      if (this.lastestIndexFind > -1) {
+        startingIndex = this.lastestIndexFind
       }
-      if ( this.displayedIndex.length > 0 ) {
-        if( this.displayedIndex[0] != index ) { // to only have different indexes
+      var arrCollection = collection.entities.values
+      var startingIndexSeconds = -1
+      var matchedIndex = -1
+      for (var i = startingIndex; i < arrCollection.length; i++) {
+        var entityDateDay = arrCollection[i].date
+        if (entityDateDay.dayNumber === date.dayNumber) {
+          startingIndexSeconds = i
+          break
+        }
+      }
+      if (startingIndexSeconds > -1) {
+        for (var j = startingIndexSeconds; j < arrCollection.length; j++) {
+          var entityDateSec = arrCollection[j].date
+          if (entityDateSec.secondsOfDay <= date.secondsOfDay && entityDateSec.dayNumber <= date.dayNumber) {
+            matchedIndex = j
+          } else {
+            break
+          }
+        }
+      } else {
+        console.log('something goes wrong we should not be there')
+      }
+      if (matchedIndex === this.lastestIndexFind) {
+        return -1
+      }
+      return matchedIndex
+    },
+    // Function that makes a list of last points displayed to have a moving window and to draw lines
+    storeHistory (index) {
+      if (this.displayedIndex.length >= this.maxHistory) { // tableau plein
+        this.displayedIndex.pop() // enlève l'élément d'index le plus haut
+        // hide entity
+      }
+      if (this.displayedIndex.length > 0) {
+        if (this.displayedIndex[0] !== index) { // to only have different indexes
           this.displayedIndex.unshift(index) // to add a new element with index 0
         }
       } else {
         this.displayedIndex.unshift(index)
       }
     },
-    // storeHistoryReverse(index){
-    //   if( this.displayedIndex.length >= this.maxHistory ) { // tableau plein
-    //       this.displayedIndex.shift() // enlève l'élément d'index le plus bas
-    //       //hide entity
-    //   }
-    //   if ( this.displayedIndex.length > 0 ) {
-    //     if( this.displayedIndex[0] != index ) { // to only have different indexes
-    //       this.displayedIndex.push(index) // to add a new element with index max
-    //     }
-    //   } else {
-    //     this.displayedIndex.push(index)
-    //   }
-    // },
-    drawPolylines(nbToDraw) {
-      var nbPolyLinesDraw = 0
+    // Function to draw lines between last points
+    drawPolylines (nbToDraw) {
+      // var nbPolyLinesDraw = 0
       var nbToDel = this._myViewer.entities.values.length - this.maxPolylines
-      if ( nbToDel >  0 ) {
-        for( var j = 0 ; j < nbToDel ; j++) {
+      if (nbToDel > 0) {
+        for (var j = 0; j < nbToDel; j++) {
           var curEntity = this._myViewer.entities.values[j]
           this._myViewer.entities.remove(curEntity)
         }
       }
-      for (var i = 0 ; i <= nbToDraw ; i++ ) {
-        if ( i + 1 < this.displayedIndex.length ) {
+      for (var i = 0; i <= nbToDraw; i++) {
+        if (i + 1 < this.displayedIndex.length) {
           var lastEntityindex = this.displayedIndex[i]
-          var beforeLastEntityIndex = this.displayedIndex[i+1]
-          // get points positions       
-          var firstPoint =  this.currentCollection.entities.values[beforeLastEntityIndex]
+          var beforeLastEntityIndex = this.displayedIndex[i + 1]
+          // get points positions
+          var firstPoint = this.currentCollection.entities.values[beforeLastEntityIndex]
           var lastPoint = this.currentCollection.entities.values[lastEntityindex]
           var f = this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(firstPoint.position._value)
           var l = this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(lastPoint.position._value)
@@ -598,28 +675,33 @@ export default {
           var latf = this._myCesium.Math.toDegrees(f.latitude)
           var lonl = this._myCesium.Math.toDegrees(l.longitude)
           var latl = this._myCesium.Math.toDegrees(l.latitude)
-          // draw line 
+          // draw line
           this._myViewer.entities.add({
             polyline: {
               positions: this._myCesium.Ellipsoid.WGS84.cartographicArrayToCartesianArray(
                 [
-                  this._myCesium.Cartographic.fromDegrees(lonf,latf,f.height),
-                  this._myCesium.Cartographic.fromDegrees(lonl,latl,l.height)
+                  this._myCesium.Cartographic.fromDegrees(lonf, latf, f.height),
+                  this._myCesium.Cartographic.fromDegrees(lonl, latl, l.height)
                 ]
               ),
-              width : 2,
+              width: 2,
               material: this._myCesium.Color.RED
               // clampToGround: true
               // followSurface: new this._myCesium.ConstantProperty(true)
             }
           })
-          }
-        }       
-      },
-    drawEntity(collection, startingIndex, endingIndex ) {
+        }
+      }
+    },
+    drawEntity (collection, startingIndex, endingIndex) {
       for (var i = startingIndex; i <= endingIndex; i++) {
         this.storeHistory(i)
         collection.entities.values[i].show = true
+        var pt = this._myViewer.entities.getById(collection.entities.values[i]._id)
+        this._myViewer.trackedEntity = pt
+        // this._myViewer.camera.flyTo({
+        //   destination : new this._myCesium.Cartesian3(collection.entities.values[i]._position._value.x, collection.entities.values[i]._position._value.y, collection.entities.values[i]._position._value.z)
+        // })
         if (this.displayedIndex.length > 1) {
           var nbLinesToDraw = -1 // equals nb lines to draw - 1 because Starting index = lastIndexFind+1
           nbLinesToDraw = endingIndex - startingIndex
@@ -628,7 +710,7 @@ export default {
       }
       this.lastestIndexFind = endingIndex
     },
-    drawEntityReverse(collection, minIndex, maxIndex ) {
+    drawEntityReverse (collection, minIndex, maxIndex) {
       for (var i = maxIndex; i >= minIndex; i--) {
         this.storeHistory(i)
         collection.entities.values[i].show = true
@@ -640,70 +722,76 @@ export default {
       }
       this.lastestIndexFind = minIndex
     },
-    hideEntity(collection, index) {
+    hideEntity (collection, index) {
       var arrCollection = collection.entities.values
-      for( var i = 0; i <= index; i++ ) {
+      for (var i = 0; i <= index; i++) {
         arrCollection[i].show = false
       }
     },
-    hideEntityReverse(collection, index) {
+    hideEntityReverse (collection, index) {
       var arrCollection = collection.entities.values
-      for( var i = index; i >= 0; i-- ) {
-        arrCollection[i].show = false
+      for (var i = arrCollection.length; i >= index; i--) {
+        if (arrCollection[i] !== undefined) {
+          arrCollection[i].show = false
+        }
       }
     },
-    player(collection,date) { 
+    player (collection, date) {
       if (this._myViewer.clock._multiplier > 0) {
         var indexFinded = this.findIndexToDisplay(collection, date)
-        if (indexFinded > -1 ) {
-          if ( this.lastestIndexFind == -1 ) {
-            this.drawEntity(collection, 0, indexFinded) 
+        if (indexFinded > -1) {
+          if (this.lastestIndexFind === -1) {
+            this.drawEntity(collection, 0, indexFinded)
           } else {
             this.hideEntity(collection, this.lastestIndexFind)
-            this.drawEntity(collection, this.lastestIndexFind+1, indexFinded)
+            this.drawEntity(collection, this.lastestIndexFind + 1, indexFinded)
           }
         }
       } else {
-        var indexFinded = this.findNearIndexToDisplay(collection, date)
-        if (indexFinded > -1 ) {
-          if ( this.lastestIndexFind == -1 ) {
-            console.log('on peut pas reverse depuis le début') 
+        var indexFindedR = null
+        if (this.reverse > 1) {
+          indexFindedR = this.findIndexToDisplayReverse(collection, date)
+        } else {
+          indexFindedR = this.findNearIndexToDisplay(collection, date)
+        }
+        if (indexFindedR > -1) {
+          if (this.lastestIndexFind === -1) {
+            console.log('on peut pas reverse depuis le début')
           } else {
             this.hideEntityReverse(collection, this.lastestIndexFind)
-            this.drawEntityReverse(collection, indexFinded, this.lastestIndexFind-1)
+            this.drawEntityReverse(collection, indexFindedR, this.lastestIndexFind - 1)
           }
         }
       }
     },
-    displayEntity(collection, matchedIndex, latestIndex) {
-      for( var j = 0 ; j < matchedIndex ; j++ ) {
+    displayEntity (collection, matchedIndex, latestIndex) {
+      for (var j = 0; j < matchedIndex; j++) {
         collection.entities.values[j].show = false
       }
 
-      if (typeof(latestIndex) == 'undefined') {
+      if (typeof (latestIndex) === 'undefined') {
         collection.entities.values[matchedIndex].show = true
         return
       }
-      for( var i = latestIndex ; i < matchedIndex ; i++ ) {
+      for (var i = latestIndex; i < matchedIndex; i++) {
         collection.entities.values[i].show = true
       }
-
     },
     // function thats exec at each tick of the clock when it plays
     Tick (event) {
       if (event.shouldAnimate && event.canAnimate) {
         var date = event._currentTime
         if (this._myViewer.clock._multiplier > 0) {
-          if (this.normal = 0) {
+          if (this.normal === 0) {
             this.displayedIndex = []
           }
-          this.normal = 1
+          this.normal = this.normal + 1
           this.reverse = 0
         } else {
-          if (this.reverse = 0) {
+          if (this.reverse === 0) {
             this.displayedIndex = []
           }
-          this.reverse = 1
+          this.reverse = this.reverse + 1
           this.normal = 0
         }
         switch (this.collectiontoplay) {
@@ -719,11 +807,15 @@ export default {
             this.player(this.myfilteredDataEntity, date)
             break
           }
+          case 'cd': {
+            this.player(this.myCleanDataEntity, date)
+            break
+          }
           default: {
             console.log('should never be here')
             break
           }
-      }
+        }
       } else {
         // console.log("plus de player")
       }
@@ -814,10 +906,10 @@ export default {
     // Function to delete a point from a collection and add it to another
     remove_point () {
       for (var point in this.mySelectedPoints) {
-        var pointEntity = this.myfilteredDataEntity.getById(this.mySelectedPoints[point].primitive._id)
+        var pointEntity = this.myfilteredDataEntity.entities.getById(this.mySelectedPoints[point].primitive._id)
         if (pointEntity === undefined) {
-          pointEntity = this.myEliminatedDataEntity.getById(this.mySelectedPoints[point].primitive._id)
-          this.myfilteredDataEntity.add(
+          pointEntity = this.myEliminatedDataEntity.entities.getById(this.mySelectedPoints[point].primitive._id)
+          this.myfilteredDataEntity.entities.add(
             {
               id: pointEntity.id,
               name: pointEntity.id,
@@ -843,7 +935,7 @@ export default {
           this.myfilteredDataPrimitive.add(
             {
               id: this.mySelectedPoints[point].primitive._id,
-              show: false,
+              show: true,
               allowPicking: true,
               color: this._myCesium.Color.fromRgba(this.myConfigCollection.myfilteredData.defaultColor),
               outlineColor: this._myCesium.Color.YELLOW,
@@ -852,9 +944,9 @@ export default {
             }
           )
           this.myEliminatedDataPrimitive.remove(this.mySelectedPoints[point].primitive)
-          this.myEliminatedDataEntity.remove(pointEntity)
+          this.myEliminatedDataEntity.entities.remove(pointEntity)
         } else {
-          this.myEliminatedDataEntity.add(
+          this.myEliminatedDataEntity.entities.add(
             {
               id: pointEntity.id,
               name: pointEntity.id,
@@ -880,7 +972,7 @@ export default {
           this.myEliminatedDataPrimitive.add(
             {
               id: this.mySelectedPoints[point].primitive._id,
-              show: false,
+              show: true,
               allowPicking: true,
               color: this._myCesium.Color.fromRgba(this.myConfigCollection.myEliminatedData.defaultColor),
               outlineColor: this._myCesium.Color.YELLOW,
@@ -889,7 +981,7 @@ export default {
             }
           )
           this.myfilteredDataPrimitive.remove(this.mySelectedPoints[point].primitive)
-          this.myfilteredDataEntity.remove(pointEntity)
+          this.myfilteredDataEntity.entities.remove(pointEntity)
         }
       }
       // _this.myRawDataPrimitive._pointPrimitives.find(function(item) {  return item.id == selectPoint.id } )
@@ -902,34 +994,29 @@ export default {
     // },
     // Function to give data from entitescollections same shape as backapp and then send it to export2 to make csv
     ManageData () {
-      // alert(' ok managedata')
-      if (typeof (this.myRawDataEntity) === 'undefined' || typeof (this.myEliminatedDataEntity) === 'undefined' || typeof (this.myfilteredDataEntity) === 'undefined') { // METTRE LES CONDITIONS POUR LES AUTRE
-        alert('Import data first')
-      } else {
-        var dataPoints = []
-        for (var i = 0; i < this.myfilteredDataEntity.values.length; i++) {
-          // var p = this.myfilteredDataPrimitive.get(i)
-          var item = this.myfilteredDataEntity.values[i]
-          var curPosition = item._position._value
-          var carto = this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(curPosition)
-          var lon = this._myCesium.Math.toDegrees(carto.longitude)
-          var lat = this._myCesium.Math.toDegrees(carto.latitude)
-          var height = carto.height
-          // var date = this._myCesium.JulianDate.toIso8601(p._date) // VOIR SOUCI DE DATE
-          var date = this._myCesium.JulianDate.toDate(item.date)
-          dataPoints.push({
-            id: item.id,
-            date: date,
-            LON: lon,
-            LAT: lat,
-            elevation: height
-          })
-        }
-        this.$root.$emit('CSVtodownload', dataPoints)
+      var dataPoints = []
+      for (var i = 0; i < this.myfilteredDataEntity.entities.values.length; i++) {
+        // var p = this.myfilteredDataPrimitive.get(i)
+        var item = this.myfilteredDataEntity.entities.values[i]
+        var curPosition = item._position._value
+        var carto = this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(curPosition)
+        var lon = this._myCesium.Math.toDegrees(carto.longitude)
+        var lat = this._myCesium.Math.toDegrees(carto.latitude)
+        var height = carto.height
+        // var date = this._myCesium.JulianDate.toIso8601(p._date) // VOIR SOUCI DE DATE
+        var date = this._myCesium.JulianDate.toDate(item.date)
+        dataPoints.push({
+          id: item.id,
+          date: date,
+          LON: lon,
+          LAT: lat,
+          elevation: height
+        })
       }
+      this.$root.$emit('CSVtodownload', dataPoints)
     },
     // to clean everything before importing new data
-    cleanCollection () { 
+    cleanCollection () {
       // console.log('update du front')
       if (this.myRawDataPrimitive || this.myPrefilteredDataPrimitive || this.myEliminatedDataPrimitive || this.myfilteredDataPrimitive) {
         if (confirm('You are going to loose current data, do you still want to proceed ?')) {
@@ -938,19 +1025,22 @@ export default {
           this.myPrefilteredDataPrimitive.destroy()
           this.myEliminatedDataPrimitive.destroy()
           this.myfilteredDataPrimitive.destroy()
+          this.myDetected_immoPrimitive.destroy()
+          this.myCleanDataPrimitive.destroy()
           this.myRawDataEntity.entities.removeAll()
           this.myPrefilteredDataEntity.entities.removeAll()
           this.myEliminatedDataEntity.entities.removeAll()
           this.myfilteredDataEntity.entities.removeAll()
+          this.myCleanDataEntity.entities.removeAll()
           this._myViewer.entities.removeAll()
           // to uncheck checkboxes
           var allcheckbox = document.querySelectorAll('div#primitive input')
-          for (var i = 0 ; i < allcheckbox.length ; i++ ) {
+          for (var i = 0; i < allcheckbox.length; i++) {
             allcheckbox[i].checked = false
           }
-          var allcheckbox = document.querySelectorAll('div#player input')
-          for (var i = 0 ; i < allcheckbox.length ; i++ ) {
-            allcheckbox[i].checked = false
+          var allcheckboxentities = document.querySelectorAll('div#player input')
+          for (var j = 0; j < allcheckboxentities.length; j++) {
+            allcheckboxentities[j].checked = false
           }
           this.customDestroyTimeline()
           // document.getElementById('rd').checked = false
@@ -959,6 +1049,68 @@ export default {
           // document.getElementById('fd').checked = false
         }
       }
+    },
+    updateElevationPrimitive (collection) {
+      // Construct the default list of terrain sources.
+      //var terrainModels = this._myCesium.createDefaultTerrainProviderViewModels()
+
+      // Construct the viewer, with a high-res terrain source pre-selected.
+      // var viewer = new this._myCesium.Viewer('cesiumContainer', {
+      //   terrainProviderViewModels: terrainModels,
+      //   selectedTerrainProviderViewModel: terrainModels[1]  // Select STK High-res terrain
+      // })
+
+      // Get a reference to the ellipsoid, with terrain on it.  (This API may change soon)
+      // var ellipsoid = viewer.scene.globe.ellipsoid
+      // var terrainProvider = this._myCesium.createWorldTerrain()
+      // // Specify our point of interest.
+      // for (var i = 0; i < 1; i++) {
+      //   // var pointOfInterest = this._myCesium.Cartographic.fromDegrees( 6.779090, 45.227860, 1240)
+      //   var pointOfInterest= [
+      //     this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(collection._pointPrimitives[i]._position.x, collection._pointPrimitives[i]._position.y)
+      //   ]
+      //   console.log('point avant', pointOfInterest)
+      //   var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, pointOfInterest)
+      //   this._myCesium.when(promise, function(updatedPositions) {
+      //     //ok
+      //   })
+      //   console.log('point updated', pointOfInterest)
+        // [OPTIONAL] Fly the camera there, to see if we got the right point.
+        // viewer.camera.flyTo({
+        //   destination: ellipsoid.cartographicToCartesian(pointOfInterest)
+        // })
+        // Sample the terrain (async) and write the answer to the console.
+        // this._myCesium.sampleTerrain(viewer.terrainProvider, 9, [ pointOfInterest ])
+        // this.height = null
+        // .then(function(samples) {
+        //   // this.height=samples[0].height
+        //   console.log('Height in meters is: ' + samples[0].height)
+        //   // console.log('Height in is: ' + this.height)
+        //   // console.log('Height point 1 avant: ' + collection._pointPrimitives[i]._position.z)
+        //   // var newHeight = this._myCesium.Cartographic.toCartesian(samples[0].height, ellipsoid)
+        //   // console.log('newpos', newHeight)
+        //   // collection._pointPrimitives[i]._position.z = newHeight
+        //   // console.log('Height point 1 apres: ' + collection._pointPrimitives[i]._position.z)
+        // })
+        // console.log('Height out is: ' + this.height)
+      // }
+        // collection._pointPrimitives[i]._position.z = samples[0].height
+      // debugger
+      // var terrainProvider = this._myViewer.terrainProvider
+      // for (var i = 0; i < collection.length; i++) {
+      //   var position = this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(collection._pointPrimitives[i]._position)
+      //   console.log('position carto', position)
+      //   var height = this._myViewer.scene.sampleHeight(terrainProvider, position)
+      //   console.log('height', height)
+        // var position = [
+        //
+        // ]
+        // // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
+        // var promise = this._myCesium.sampleTerrain(terrainProvider, 2, position)
+        // this._myCesium.when(promise, function (updatedPositions) {
+        //   console.log('elevation', position[0].height)
+        //   // collection._pointPrimitives[i]._position.z = position[0].height
+        // })
     }
   },
   // Create collections and config object
@@ -970,7 +1122,6 @@ export default {
       this.displayCheckbox = true
       _this.myRawDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my raw data') // new _this._myCesium.CustomDataSource('my raw data')
       _this.myRawDataEntity = new _this._myCesium.CustomDataSource()
-      // _this.RDate = new _this.myCesium.TimeIntervalCollection()
       _this.myImpossibleDataPrimitive = new _this._myCesium.PointPrimitiveCollection()
       _this.myPrefilteredDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my prefiltered data')
       _this.myPrefilteredDataEntity = new _this._myCesium.CustomDataSource()
@@ -978,7 +1129,9 @@ export default {
       _this.myEliminatedDataEntity = new _this._myCesium.CustomDataSource()
       _this.myfilteredDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my filtered data')
       _this.myfilteredDataEntity = new _this._myCesium.CustomDataSource()
-      _this.Detected_immoPrimitive = new _this._myCesium.PointPrimitiveCollection()
+      _this.myDetected_immoPrimitive = new _this._myCesium.PointPrimitiveCollection()
+      _this.myCleanDataPrimitive = new _this._myCesium.PointPrimitiveCollection()
+      _this.myCleanDataEntity = new _this._myCesium.CustomDataSource()
       _this.myConfigCollection = {
         'myRawData': {
           defaultColor: 4294901760,
@@ -1011,21 +1164,27 @@ export default {
           clickedColor: 4278190335,
           outlineColor: 4294967295,
           references: _this.myfilteredDataPrimitive
+        },
+        'myImmobilityData': { //à modifier
+          defaultColor: 4278222848,
+          clickedColor: 4278190335,
+          outlineColor: 4294967295,
+          references: _this.myfilteredDataPrimitive
+        },
+        'myCleanData': { //à modifier
+          defaultColor: 4278222848,
+          clickedColor: 4278190335,
+          outlineColor: 4294967295,
+          references: _this.myfilteredDataPrimitive
         }
       }
       // To add data to points collections
       for (var itr in data[0]) {
         _this.myRawDataPrimitive.add(_this.createPointPrimitive(data[0][itr], _this.myConfigCollection.myRawData.defaultColor, _this.myConfigCollection.myRawData.outlineColor))
         _this.myRawDataEntity.entities.add(_this.createPointEntity(data[0][itr], _this.myConfigCollection.myRawData.defaultColor, _this.myConfigCollection.myRawData.outlineColor))
-        // dates.push(data[0][itr]['date'])
       }
-      // console.log('les dates', dates)
-      // console.log('la collection', _this.myRawDataPrimitive)
-      // debugger
-      // _this.RDates = this._myCesium.TimeIntervalCollection.fromIso8601DateArray({
-      //   iso8601Dates: dates
-      // })
-      // console.log('les dates en collection', _this.RDate)
+      _this.updateElevationPrimitive(_this.myRawDataPrimitive)
+      // _this.updateElevationEntity(_this.myRawDataEntity)
       for (var itp in data[1]) {
         _this.myPrefilteredDataPrimitive.add(_this.createPointPrimitive(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, _this.myConfigCollection.myPrefilteredData.outlineColor))
         _this.myPrefilteredDataEntity.entities.add(_this.createPointEntity(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, _this.myConfigCollection.myPrefilteredData.outlineColor))
@@ -1033,34 +1192,24 @@ export default {
       for (var ite in data[2]) {
         _this.myImpossibleDataPrimitive.add(_this.createPointPrimitive(data[2][ite], this.myConfigCollection.myImpossibleData.defaultColor, _this.myConfigCollection.myImpossibleData.outlineColor))
       }
-      // for (var itf = 0; itf < data[3].length - 1; itf++) {
       for (var itf in data[3]) {
-      //   _this.fpolylines = _this._myViewer.entities.add(new _this._myCesium.Entity()) // to create segments between consecutive points
         _this.myfilteredDataPrimitive.add(_this.createPointPrimitive(data[3][itf], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor)) // to create points
         _this.myfilteredDataEntity.entities.add(_this.createPointEntity(data[3][itf], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor))
-        // To create lines
-        _this.Rawlines = new _this._myCesium.PolylineCollection()
-        // _this.CreatePolylines(_this.myRawDataPrimitive, _this.Rawlines)
       }
       if (data[4].length > 0) {
         console.log('une immobilité a été détectée')
+        this.immobility = true
         for (var iti in data[4]) {
           _this.Detected_immoPrimitive.add(_this.createPointPrimitive(data[4][iti], this._myCesium.Color.WHITE, this._myCesium.Color.RED))
         }
+        for (var itc in data[5]) { //modif couleurs
+          _this.myCleanDataPrimitive.add(_this.createPointPrimitive(data[5][itc], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor)) // to create points
+          _this.myCleanDataEntity.entities.add(_this.createPointEntity(data[5][itc], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor))
+      }
       }
     })
-    // _this.$root.$on('UpdateData', () =>  {
-    //   console.log(" ok on va clean")
-    // })
-    // _this.$root.$on('downloadcsv', flag => {
-
-    //   console.log('je genere les data a transformer', _this.myPrefilteredDataPrimitive)
-    //   // TODO recuperer et transormer la collection
-
-    //   this.$root.$emit('CSVtodownload', true)
-    // })
   },
-  // NOT USED 
+  // NOT USED
   MakeListSameColor (collection, list, color) {
     for (var i = 0; i < collection.length; i++) {
       var p = collection.get(i)
