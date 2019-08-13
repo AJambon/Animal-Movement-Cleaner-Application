@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1>Animal Movement Cleaner application</h1>
+    <h1>Animal Movement Cleaner Application</h1>
   </div>
 </template>
 
