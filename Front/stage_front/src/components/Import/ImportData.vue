@@ -1,22 +1,14 @@
 <template>
     <div id='import'>
         <h1> Voilà la zone d'import </h1>
-          <!-- <label for="species"> Species </label> -->
-          <!-- <form enctype="multipart/form-data" action="/upload" method="post"> -->
             <div class="fields">
               <label>Upload File</label><br/>
               <input id="csv-file" name="newcsv" type="file" ref="file" accept=".csv" v-on:change="onSelect()"/>
-              <!-- <button v-on:click="UpdateData">update file</button> -->
-            </div>
-            <div class="fields">
-              <br/>
-              <button @click="onSubmit();UpdateData()" >Submit file</button>
             </div>
             <div class="message">
               <h5>{{message}}</h5>
             </div>
-          <!-- </form> -->
-          <textarea id="species" type="text" name="species">1,2018-04-15T02:00:00.000,45.227860,06.779090,1240,1,3D
+          <textarea id="byhand" type="text" name="species">1,2018-04-15T02:00:00.000,45.227860,06.779090,1240,1,3D
 2,2018-04-15T05:00:00.000,45.227770,06.779150,1204,1.1,3D
 3,2018-04-15T08:00:00.000,45.227850,06.777650,1383,1.8,3D
 4,2018-04-15T11:00:00.000,45.227050,06.780260,1281,1.1,3D
@@ -141,8 +133,8 @@
 123,2018-05-01T17:00:00.000,45.216960,06.695650,1314,1.4,3D
 124,2018-05-01T20:00:00.000,45.217480,06.697010,1392,4.8,3D
 125,2018-05-01T23:00:00.000,45.218160,06.697110,1445,1.8,3D
-126,2018-05-02T02:00:00.000,45.218210,06.696930,1388,2.1,3D
-127,2018-05-02T05:01:00.000,00.000000,00.000000,0,0,GPS TimeOut
+126,2018-05-02T02:00:00.000,45.218210,06.696930,1388,2.1,3D</textarea>
+<!--127,2018-05-02T05:01:00.000,00.000000,00.000000,0,0,GPS TimeOut
 128,2018-05-02T08:01:00.000,45.217880,06.696870,1344,1.9,3D
 129,2018-05-02T11:00:00.000,45.218060,06.697820,1341,1.2,3D
 130,2018-05-02T14:00:00.000,45.218070,06.697740,1380,1.6,3D
@@ -2599,85 +2591,95 @@
 2581,2019-05-28T02:00:00.000,45.219390,06.695980,1471,1.1,3D
 2582,2019-05-28T05:00:00.000,45.217670,06.694880,1803,1,3D
 2583,2019-05-28T08:00:00.000,45.217490,06.696960,,,
-2584,2019-05-28T08:00:00.000,45.217810,06.697310,1369,1.2,3D</textarea>
+2584,2019-05-28T08:00:00.000,45.217810,06.697310,1369,1.2,3D
+ -->
           <button v-on:click="mysubmit();UpdateData()"> Import </button>
+        <!-- <div class="text-center">
+          <b-spinner variant="primary" label="Text Centered"></b-spinner>
+        </div> -->
     </div>
 </template>
 
 <script>
 import Vue from 'vue'
 import VueResource from 'vue-resource'
+import BootstrapVue from 'bootstrap-vue'
+import { EventBusParameters } from '../../main'
 
+Vue.use(BootstrapVue)
 Vue.use(VueResource)
 export default {
-  // name: 'FileUpload',
   http: {
     root: 'http://localhost:6543'
   },
   data () {
     return {
       file: '',
-      message: ''
+      message: '',
+      parameters: null
     }
+  },
+  created () {
+    EventBusParameters.$on('ParamsSelect', (data) => { // to get parameters entrered in Parameters component
+      this.parameters = data
+    })
   },
   methods: {
     UpdateData () {
-      // console.log('vider les collections')
       this.$emit('UpdateData', true)
-      // console.log('vider les collections2')
     },
     onSelect () {
-      const file = this.$refs.file.files[0] // pourquoi en 2 étapes
+      const file = this.$refs.file.files[0]
       this.file = file
       console.log(file)
     },
-    onSubmit () { // async ?
-      if (typeof (this.file) !== 'object') {
-        alert('First choose a file')
-      } else {
-        const formData = new FormData() // diff let vs const
-        formData.append('file', this.file)
-        this.$http.post('upload',
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            }
-          }
-        ).then((response) => {
-          console.log('SUCCESS!!')
-          this.$root.$emit('eventing', response.data)
-        })
-          .catch(function () {
-            console.log('FAILURE!!')
-          })
-      }
-    },
-    //   try {
-    //     await axios.post('/upload', formData)
-    //     this.message = 'Uploaded !!'
-    //   } catch (err) {
-    //     console.log(err)
-    //     this.message = 'Something went wrong !!'
-    //   }
-    // },
     mysubmit () {
-      var speciesfromtextarea = document.getElementById('species').value
-      var formData = new FormData()
-      formData.append('geometry', speciesfromtextarea)
-      this.$http.post('backapp',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
+      if (this.parameters === null) {
+        alert('First enter parameters corresponding to your dataset')
+      } else {
+        var speciesfromtextarea = document.getElementById('byhand').value
+        var parametersToSend = JSON.stringify(this.parameters)
+        if (typeof (this.file) === 'object') {
+          const formData = new FormData()
+          formData.append('file', this.file)
+          formData.append('parameters', parametersToSend)
+          this.$http.post('upload',
+            formData,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              }
+            }
+          ).then((response) => {
+            console.log('SUCCESS!!')
+            this.$root.$emit('eventing', response.data)
+          })
+            .catch(function () {
+              console.log('FAILURE!!')
+            })
+        } else {
+          if (speciesfromtextarea !== '') {
+            var formData = new FormData()
+            formData.append('geometry', speciesfromtextarea)
+            formData.append('parameters', parametersToSend)
+            this.$http.post('backapp',
+              formData,
+              {
+                headers: {
+                  'Content-Type': 'multipart/form-data'
+                }
+              }).then((response) => {
+              this.$root.$emit('eventing', response.data)
+            },
+            (response) => {
+              console.log('erreur', response)
+            }
+            )
+          } else {
+            alert('First choose a file or enter data')
           }
-        }).then((response) => {
-        this.$root.$emit('eventing', response.data)
-      },
-      (response) => {
-        console.log('erreur', response)
+        }
       }
-      )
     }
   }
 }
