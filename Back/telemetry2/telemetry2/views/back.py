@@ -20,6 +20,11 @@ from ..smallestenclosingcircle import *
 #Algorithm from csv file
 @view_config(route_name='upload', renderer='json',request_method='POST')
 def init_upload(request):
+    parameters = json.loads(request.POST.get('parameters')) #get parameters from post + eval() enables to get it back to dict
+    technology = parameters['technology']
+    species = parameters['species']
+    maxSpeed = float(parameters['speed'])
+    immo_time = float(parameters['immoTime'])
     objFile = request.POST.get('file') # gets csv file uploaded from Front app
     WantedData=['event-id','timestamp','location-lat','location-long'] # à demander en paramètres d'entrée
     rawPointsDf = DataFrameManagement(objFile,WantedData) # function to have a df with expected data
@@ -30,10 +35,14 @@ def init_upload(request):
     workingDf.insert(len(workingDf.columns),'status','pending')
     points_prefiltered = dfToListDict(workingDf)
     points_filtered1=Distance_algo(points_prefiltered,100,100) # seuils à modifier
-    points_filtered2=Speed_algo(points_filtered1,100,130) # seuils à modifier
-    detected_immo = Immobility_algo(points_filtered2,200) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
-
-    return dfToListDict(rawPointsDf),points_prefiltered,dfToListDict(eleminatedPointsdf),points_filtered2, detected_immo
+    points_filtered2=Speed_algo(points_filtered1,100,maxSpeed) # seuils à modifier
+    if technology == 'argos':
+        Argoserror = ArgosError()
+        detected_immo,pointsAlive = Immobility_algo(points_filtered2,Argoserror) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
+    if technology == 'gps':
+        Gpserror = GpsError()
+        detected_immo,pointsAlive = Immobility_algo(points_filtered2,Gpserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
+    return dfToListDict(rawPointsDf),points_prefiltered,dfToListDict(eleminatedPointsdf),points_filtered2, detected_immo, pointsAlive
 
 def DataFrameManagement(objFile,WantedData):
     data = pd.read_csv(objFile.file,dtype=str)
@@ -53,7 +62,11 @@ def DataFrameManagement(objFile,WantedData):
 #Aglorithm from data in textarea
 @view_config(route_name='backapp', renderer='json',request_method='POST')
 def init_back(request):
-    #log.debug('%s %s', request, request.params)
+    parameters = json.loads(request.POST.get('parameters')) #get parameters from post + eval() enables to get it back to dict
+    technology = parameters['technology']
+    species = parameters['species']
+    maxSpeed = float(parameters['speed'])
+    immo_time = float(parameters['immoTime'])
     if "geometry" in request.POST:
         geometry = request.POST.get('geometry')
         pb=[]
@@ -82,9 +95,14 @@ def init_back(request):
             # points_prefiltered = workingDf.to_dict('Index').values()
             points_filtered1=Distance_algo(points_prefiltered,2,10)
             # Add speed info 
-            points_filtered2=Speed_algo(points_filtered1,2,50)
-            detected_immo = Immobility_algo(points_filtered2,100)
-            return dfToListDict(rawPointsDf),points_prefiltered,dfToListDict(eleminatedPointsdf),points_filtered2, detected_immo # ,duplicates
+            points_filtered2=Speed_algo(points_filtered1,2,maxSpeed)
+            if technology == 'argos' :
+                Argoserror = ArgosError()
+                detected_immo,pointsAlive = Immobility_algo(points_filtered2,Argoserror) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
+            if technology == 'gps' :
+                Gpserror = GpsError()
+                detected_immo,pointsAlive = Immobility_algo(points_filtered2,Gpserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
+            return dfToListDict(rawPointsDf),points_prefiltered,dfToListDict(eleminatedPointsdf),points_filtered2, detected_immo, pointsAlive # ,duplicates
         else :
             return 'souci'
     else:
@@ -288,7 +306,16 @@ def Speed_algo(points,max1,MaxSpeed):
             pointsfilteredS.append(points[i])
     return pointsfilteredS
         
-def Immobility_algo(points,immo_range): # trouver le barycentre de points, trouver le point le plus distant de ce barycentre -> rayon du cercle : tant que le rayon
+def ArgosError():
+    error = 1000 # voir quoi mettre, maxerror, average error..
+    return error 
+
+def GpsError():
+    error = 50 # voir quoi mettre, maxerror, average error..
+    return error 
+
+def Immobility_algo(points,immo_range, immo_time): # trouver le barycentre de points, trouver le point le plus distant de ce barycentre -> rayon du cercle : tant que le rayon
+    pointsAlive = []
     detected_immo = []
     L=len(points)
     # Démarrer de la fin
@@ -299,18 +326,22 @@ def Immobility_algo(points,immo_range): # trouver le barycentre de points, trouv
         x,y,zone,p= utm.from_latlon(float(record['LAT']),float(record['LON']))
         points_for_circle.append((x,y))
         cx,cy,r = make_circle(points_for_circle)
+        detected_immo.append(record)
         #print('le rayon',r)
         if r > immo_range : 
             del points_for_circle[-1]
+            del detected_immo[-1]
             break
     K = len(points_for_circle)  
     diftimeS=datetime.datetime.strptime(points[L-1]['date'],'%Y-%m-%dT%H:%M:%S') - datetime.datetime.strptime(points[L-K]['date'],'%Y-%m-%dT%H:%M:%S')
     diftimeH=diftimeS.total_seconds()/3600
-    if diftimeH >= 24:
+    if diftimeH >= immo_time:
         print('Immobility detected from',points[L-K]['date'])
-        detected_immo=points_for_circle
+        pointsAlive = [x for x in points if x not in detected_immo]
     else:
+        detected_immo = []
+        pointsAlive = [] # vide ou égal à points ?
         print("Aucune immobilité n'a été détectée")
-    return detected_immo
+    return detected_immo, pointsAlive
 
 
