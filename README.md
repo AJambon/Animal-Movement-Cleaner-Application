@@ -27,7 +27,11 @@ Front installation:
 5/ Go in src directory with $ cd C:\application\stageNS\Front\stage_front\src
 - Open the file config.js
 - Replace the apiUrl by your server name
-
+```javascript 
+export const myConfig = {
+    apiUrl : 'http://localhost:6543'
+}
+``` 
 6/ Go in Front directory with $ cd C:\application\stageNS\Front\stage_front
 -	Execute $ npm install
 -	Execute $ npm run dev
