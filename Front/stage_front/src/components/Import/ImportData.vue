@@ -2605,12 +2605,13 @@ import Vue from 'vue'
 import VueResource from 'vue-resource'
 import BootstrapVue from 'bootstrap-vue'
 import { EventBusParameters } from '../../main'
+import {myConfig} from '../../config'
 
 Vue.use(BootstrapVue)
 Vue.use(VueResource)
 export default {
   http: {
-    root: 'http://localhost:6543'
+    root : myConfig.apiUrl
   },
   data () {
     return {
