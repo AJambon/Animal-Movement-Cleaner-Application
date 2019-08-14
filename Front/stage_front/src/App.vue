@@ -96,7 +96,7 @@ export default {
       fullscreenButton: true,
       timeline: false,
       homeButton: true,
-      baseLayerPicker: true,
+      baseLayerPicker: false,
       sceneModePicker: true,
       navigationHelpButton: true,
       camera: {
@@ -479,7 +479,7 @@ export default {
       // var newHeight = this.getElevation(options.LAT, options.LON,3000)
       // console.log("point",options)
       // console.log("height",newHeight)
-      return new this._myCesium.PointPrimitive(
+      var newPoint = new this._myCesium.PointPrimitive(
         {
           id: options.id,
           show: true,
@@ -491,6 +491,13 @@ export default {
           // position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, this.getElevation(options.LAT, options.LON, options.elevation), this._myCesium.Ellipsoid.WGS84)
         }
       )
+      // debugger
+      // var height = this._myViewer.scene.sampleHeight(newPoint.position);
+      // console.log("height calculated",height);
+      // console.log(" new position", this._myViewer.scene.clampToHeight(newPoint.position))
+      // console.log("converted ", this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(newPoint.position))
+      // newPoint.position = this._myViewer.scene.clampToHeight(newPoint.position)
+      return newPoint
     },
     // functions to create the points entities from imported data
     createPointEntity (options, color, outlineColor) {
@@ -1315,13 +1322,15 @@ export default {
           defaultColor: 4278222848,
           clickedColor: 4278190335,
           outlineColor: 4294967295,
-          references: _this.myfilteredDataPrimitive
+          references: null
+          // references: _this.myfilteredDataPrimitive
         },
         'myCleanData': { // à modifier
           defaultColor: 4278222848,
           clickedColor: 4278190335,
           outlineColor: 4294967295,
-          references: _this.myfilteredDataPrimitive
+          references: null
+          // references: _this.myfilteredDataPrimitive
         }
       }
       // To add data to points collections
