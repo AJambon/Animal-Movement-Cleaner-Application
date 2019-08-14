@@ -320,8 +320,33 @@ export default {
         for (var val2 of arraySelected) {
           switch (val2) {
             case 'rd': {
+              // var _this = this
+              // var terrainProvider = this._myViewer.terrainProvider
+              // var position = this.myRawDataPrimitive._pointPrimitives.map(function(item) { 
+              //   return _this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(item._position ) 
+              // })
+              // // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
+              // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
+              // this._myCesium.when(promise, function (updatedPositions) {
+              //   for (var i = 0 ; i < updatedPositions.length; i++) {
+                  
+              //   }
+              //   console.log('elevation', position[0].height)
+              // })
               this.addToMap(this.myRawDataPrimitive)
               this.zoomToPrimitive(this.myRawDataPrimitive)
+              // console.log('elevation', elevation)
+              // var _this = this
+              // var positions = 
+              // this.promise = this._myCesium.sampleTerrain(this._myViewer.terrainProvider, 9, positions)
+              // debugger
+              // _this._myCesium.when(_this.promise, function(updatedPositions) {
+              //   console.log("alooorrrrrrrrrssssss")
+              //   debugger
+
+              // })
+              
+
               break
             }
             case 'ipd': {
@@ -487,7 +512,8 @@ export default {
           color: this._myCesium.Color.fromRgba(color),
           outlineColor: this._myCesium.Color.fromRgba(outlineColor),
           outlineWidth: 2,
-          position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, options.elevation, this._myCesium.Ellipsoid.WGS84)
+          position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, options.elevation, this._myCesium.Ellipsoid.WGS84),
+          heightReference: this._myCesium.HeightReference.CLAMP_TO_GROUND
           // position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, this.getElevation(options.LAT, options.LON, options.elevation), this._myCesium.Ellipsoid.WGS84)
         }
       )
@@ -513,7 +539,8 @@ export default {
             pixelSize: 5,
             color: this._myCesium.Color.fromRgba(color),
             outlineColor: this._myCesium.Color.fromRgba(outlineColor),
-            outlineWidth: 2
+            outlineWidth: 2,
+            heightReference : this._myCesium.HeightReference.CLAMP_TO_GROUND
           },
           label: {
             text: options.id,
@@ -521,7 +548,8 @@ export default {
             style: this._myCesium.LabelStyle.FILL_AND_OUTLINE,
             outlineWidth: 2,
             verticalOrigin: this._myCesium.VerticalOrigin.BOTTOM,
-            pixelOffset: new this._myCesium.Cartesian2(0, -9)
+            pixelOffset: new this._myCesium.Cartesian2(0, -9),
+            heightReference : this._myCesium.HeightReference.CLAMP_TO_GROUND
           }
         }
       )
@@ -838,8 +866,8 @@ export default {
                 ]
               ),
               width: 2,
-              material: this._myCesium.Color.RED
-              // clampToGround: true
+              material: this._myCesium.Color.RED,
+              clampToGround: true
               // followSurface: new this._myCesium.ConstantProperty(true)
             }
           })
@@ -1264,7 +1292,35 @@ export default {
       //   console.log('elevation', position[0].height)
       //   // collection._pointPrimitives[i]._position.z = position[0].height
       // })
-    }
+    },
+    instanciateCollection(data) {
+          // To add data to points collections
+      for (var itr in data[0]) {
+        this.myRawDataPrimitive.add(this.createPointPrimitive(data[0][itr], this.myConfigCollection.myRawData.defaultColor, this.myConfigCollection.myRawData.outlineColor))
+        this.myRawDataEntity.entities.add(this.createPointEntity(data[0][itr], this.myConfigCollection.myRawData.defaultColor, this.myConfigCollection.myRawData.outlineColor))
+      }
+      for (var itp in data[1]) {
+        this.myPrefilteredDataPrimitive.add(this.createPointPrimitive(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, this.myConfigCollection.myPrefilteredData.outlineColor))
+        this.myPrefilteredDataEntity.entities.add(this.createPointEntity(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, this.myConfigCollection.myPrefilteredData.outlineColor))
+      }
+      for (var ite in data[2]) {
+        this.myImpossibleDataPrimitive.add(this.createPointPrimitive(data[2][ite], this.myConfigCollection.myImpossibleData.defaultColor, this.myConfigCollection.myImpossibleData.outlineColor))
+      }
+      for (var itf in data[3]) {
+        this.myfilteredDataPrimitive.add(this.createPointPrimitive(data[3][itf], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor)) // to create points
+        this.myfilteredDataEntity.entities.add(this.createPointEntity(data[3][itf], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor))
+      }
+      if (data[4].length > 0) {
+        this.immobility = true
+        for (var iti in data[4]) {
+          this.Detected_immoPrimitive.add(this.createPointPrimitive(data[4][iti], this._myCesium.Color.WHITE, this._myCesium.Color.RED))
+        }
+        for (var itc in data[5]) { // modif couleurs
+          this.myCleanDataPrimitive.add(this.createPointPrimitive(data[5][itc], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor)) // to create points
+          this.myCleanDataEntity.entities.add(this.createPointEntity(data[5][itc], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor))
+        }
+      }
+    },
   },
   // Create collections and config object
   mounted () {
@@ -1272,6 +1328,7 @@ export default {
     // MODIFIER AVEC THIS.EMIT DANS ImportData ET EVENT LISTENER DANS APP avec fonction https://www.telerik.com/blogs/how-to-emit-data-in-vue-beyond-the-vuejs-documentation
     _this.$root.$on('eventing', data => {
       // Creating Collections of points
+      _this.dataReceived = data
       this.displayCheckbox = true
       _this.myRawDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my raw data') // new _this._myCesium.CustomDataSource('my raw data')
       _this.myRawDataEntity = new _this._myCesium.CustomDataSource()
@@ -1333,37 +1390,27 @@ export default {
           // references: _this.myfilteredDataPrimitive
         }
       }
-      // To add data to points collections
-      for (var itr in data[0]) {
-        _this.myRawDataPrimitive.add(_this.createPointPrimitive(data[0][itr], _this.myConfigCollection.myRawData.defaultColor, _this.myConfigCollection.myRawData.outlineColor))
-        _this.myRawDataEntity.entities.add(_this.createPointEntity(data[0][itr], _this.myConfigCollection.myRawData.defaultColor, _this.myConfigCollection.myRawData.outlineColor))
-      }
-      _this.updateElevationPrimitive(_this.myRawDataPrimitive)
-      // _this.updateElevationEntity(_this.myRawDataEntity)
-      for (var itp in data[1]) {
-        _this.myPrefilteredDataPrimitive.add(_this.createPointPrimitive(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, _this.myConfigCollection.myPrefilteredData.outlineColor))
-        _this.myPrefilteredDataEntity.entities.add(_this.createPointEntity(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, _this.myConfigCollection.myPrefilteredData.outlineColor))
-      }
-      for (var ite in data[2]) {
-        _this.myImpossibleDataPrimitive.add(_this.createPointPrimitive(data[2][ite], this.myConfigCollection.myImpossibleData.defaultColor, _this.myConfigCollection.myImpossibleData.outlineColor))
-      }
-      for (var itf in data[3]) {
-        _this.myfilteredDataPrimitive.add(_this.createPointPrimitive(data[3][itf], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor)) // to create points
-        _this.myfilteredDataEntity.entities.add(_this.createPointEntity(data[3][itf], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor))
-      }
-      if (data[4].length > 0) {
-        console.log('une immobilité a été détectée')
-        this.immobility = true
-        for (var iti in data[4]) {
-          _this.Detected_immoPrimitive.add(_this.createPointPrimitive(data[4][iti], this._myCesium.Color.WHITE, this._myCesium.Color.RED))
-        }
-        for (var itc in data[5]) { // modif couleurs
-          _this.myCleanDataPrimitive.add(_this.createPointPrimitive(data[5][itc], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor)) // to create points
-          _this.myCleanDataEntity.entities.add(_this.createPointEntity(data[5][itc], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor))
-        }
-      }
+      var terrainProvider = _this._myViewer.terrainProvider
+      var position = data[3].map(function(item) { 
+        return _this._myCesium.Cartographic.fromDegrees( Number(item.LON), Number(item.LAT),  Number(item.elevation) ) 
+      })
+      // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
+      var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
+      this._myCesium.when(promise, function (updatedPositions) {
+        for ( var i =0; i < updatedPositions.length; i++) {
+          _this.dataReceived[3][i].elevation = updatedPositions[i].height
+          }
+        _this.instanciateCollection(_this.dataReceived)
+        console.log('elevation', position[0].height)
+        debugger
+      })
+     
+
+
     })
   },
+
+
   // NOT USED
   MakeListSameColor (collection, list, color) {
     for (var i = 0; i < collection.length; i++) {
