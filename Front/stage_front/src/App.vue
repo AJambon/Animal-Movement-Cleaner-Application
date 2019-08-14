@@ -11,7 +11,14 @@
       <div id="interact_data" class="demo-tool">
         <div id='primitive' v-if="displayCheckbox">
           <b-form-group label="Choose the collection to display">
-            <input id = "rd" value="rd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
+            <b-form-checkbox-group
+              id="checkbox-group-1"
+              v-model="selected"
+              :options="optionscheckbox"
+              name="flavour-1"
+              @change="onCheckboxCollectionChange($event)"
+            ></b-form-checkbox-group>
+            <!-- <input id = "rd" value="rd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
             <label for="rd">Raw data</label>
             <input id = "ipd" value="ipd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
             <label for="ipd">Impossible data</label>
@@ -24,13 +31,19 @@
             <input id = "id" value="id" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
             <label for="id">Immobility Data</label>
             <input id = "cd" value="cd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="cd">Clean data</label>
+            <label for="cd">Clean data</label> -->
           </b-form-group>
           <button v-on:click="remove_point" >Remove point</button>
         </div>
         <div id='player' v-if="displayCheckbox">
           <b-form-group label="Choose the collection to display with the player">
-            <input id = "rd" value="rd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
+            <b-form-radio-group
+              v-model="picked"
+              :options="optionsRadios"
+              name="radio-inline"
+              @change="collectionToAnimate($event)"
+            ></b-form-radio-group>
+            <!-- <input id = "rd" value="rd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
             <label for="rd">Raw data</label>
             <input id = "pfd" value="pfd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
             <label for="pfd">Prefiltered data</label>
@@ -39,12 +52,12 @@
             <input id = "fd" value="fd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
             <label for="fd">Filtered data</label>
             <input id = "cd" value="cd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-            <label for="cd">Clean data</label>
+            <label for="cd">Clean data</label> -->
             <!-- <b-form-radio-group id="btn-radios-1" v-model="picked" :options="entitycoll" buttons name="display_coll" @change="collectionToAnimate($event)"></b-form-radio-group> -->
           </b-form-group>
         </div>
-        <div id='params'>
-          <input id = "3DT" value="3DT" type="checkbox" @change="displayTransparency($event)"/>
+        <div id='globeOptions'>
+          <b-form-checkbox id = "3DT" v-model="terrainTransparency" @change="displayTransparency($event)" switch/>
           <label for="3DT">Terrain transparency</label>
         </div>
       </div>
@@ -62,6 +75,9 @@ import Export from './components/Export/Export.vue'
 import Parameters from './components/Parameters/Parameters.vue'
 import VueCesium from 'vue-cesium'
 import Vue from 'vue'
+
+import 'bootstrap/dist/css/bootstrap.css'
+import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 Vue.use(VueCesium)
 
@@ -91,13 +107,25 @@ export default {
       },
       displayCheckbox: false,
       mySelectedPoints: [],
-      picked: [],
-      // entitycoll: [
-      //   { text: 'Raw data', value: 'rd' },
-      //   { text: 'Prefiltered data', value: 'pfd' },
-      //   { text: 'Eliminated data', value: 'ed' },
-      //   { text: 'Filtered data', value: 'fd' }
-      // ],
+      terrainTransparency: false,
+      selected: [],
+      picked: '',
+      optionsRadios: [
+        { text: 'Raw data', value: 'rd' },
+        { text: 'Prefiltered data', value: 'pfd' },
+        { text: 'Eliminated data', value: 'ed' },
+        { text: 'Filtered data', value: 'fd' },
+        { text: 'Clean data', value : 'cd'}
+      ],
+      optionscheckbox: [
+        { text: 'Raw data', value: 'rd' },
+        { text: 'Impossible data', value: 'ipd'},
+        { text: 'Prefiltered data', value: 'pfd' },
+        { text: 'Eliminated data', value: 'ed' },
+        { text: 'Filtered data', value: 'fd' },
+        { text: 'Immobility data', value: 'id'},
+        { text: 'Clean data', value : 'cd'}
+      ],
       immobility: false
     }
   },
@@ -187,8 +215,9 @@ export default {
     },
     // Linked to checkbox Terrain transparency and permit to display and remove transparency of 3D layer
     displayTransparency (event) {
-      var selection = event.target.checked
-      this._myViewer.scene.globe.depthTestAgainstTerrain = selection
+      this._myViewer.scene.globe.depthTestAgainstTerrain = event
+      // var camera = this._myViewer.camera
+      // camera.constrainedAxis = this._myCesium.Cartesian3.UNIT_Z
     },
     // Function to hide and show points from primitive collections
     // ShowPoints (collection, selection) {
@@ -210,85 +239,198 @@ export default {
       this.customDestroyTimeline()
     },
     CleanMap (collection) {
-      for (var i = 0; i < this._myViewer.scene.primitives._primitives.length; i++) {
+      for (var i = this._myViewer.scene.primitives._primitives.length - 1 ; i >= 0  ; i--) {   
         if (this._myViewer.scene.primitives._primitives[i] === collection) {
           this._myViewer.scene.primitives._primitives.splice(i, 1)
         }
       }
+      // for (var i = 0; i < this._myViewer.scene.primitives._primitives.length; i++) {
+      //   console.log()
+      //   if (this._myViewer.scene.primitives._primitives[i] === collection) {
+      //     this._myViewer.scene.primitives._primitives.splice(i, 1)
+      //   }
+      // }
     },
-    onCheckboxCollectionChange (event) {
-      var selection = event.target.checked
-      this.lastCheckBoxChecked = event.target.value
-      this.cleanPlayer()
-      switch (this.lastCheckBoxChecked) {
-        case 'rd': {
-          if (selection === false) {
-            this.CleanMap(this.myRawDataPrimitive)
-          } else {
-            this._myViewer.scene.primitives.add(this.myRawDataPrimitive)
-            this.zoomToPrimitive(this.myRawDataPrimitive)
-          }
-          break
-        }
-        case 'ipd': {
-          if (selection === false) {
-            this.CleanMap(this.myImpossibleDataPrimitive)
-          } else {
-            this._myViewer.scene.primitives.add(this.myImpossibleDataPrimitive)
-            this.zoomToPrimitive(this.myImpossibleDataPrimitive)
-          }
-          break
-        }
-        case 'pfd': {
-          if (selection === false) {
-            this.CleanMap(this.myPrefilteredDataPrimitive)
-          } else {
-            this._myViewer.scene.primitives.add(this.myPrefilteredDataPrimitive)
-            this.zoomToPrimitive(this.myPrefilteredDataPrimitive)
-          }
-          break
-        }
-        case 'ed': {
-          if (selection === false) {
-            this.CleanMap(this.myEliminatedDataPrimitive)
-          } else {
-            this._myViewer.scene.primitives.add(this.myEliminatedDataPrimitive)
-            this.zoomToPrimitive(this.myEliminatedDataPrimitive)
-          }
-          break
-        }
-        case 'fd': {
-          if (selection === false) {
-            this.CleanMap(this.myfilteredDataPrimitive)
-          } else {
-            this._myViewer.scene.primitives.add(this.myfilteredDataPrimitive)
-            this.zoomToPrimitive(this.myfilteredDataPrimitive)
-          }
-          break
-        }
-        case 'id': {
-          if (selection === false) {
-            this.CleanMap(this.myDetected_immoPrimitive)
-          } else {
-            this._myViewer.scene.primitives.add(this.myDetected_immoPrimitive)
-            this.zoomToPrimitive(this.myDetected_immoPrimitive)
-          }
-          break
-        }
-        case 'cd': {
-          if (selection === false) {
-            this.CleanMap(this.myCleanDataPrimitive)
-          } else {
-            this._myViewer.scene.primitives.add(this.myCleanDataPrimitive)
-            this.zoomToPrimitive(this.myCleanDataPrimitive)
-          }
-          break
-        }
-        default: {
-          console.log('should never be here')
+    addToMap (collection) {
+      var present = false
+      for (var i = 0; i < this._myViewer.scene.primitives._primitives.length ; i++) {
+        if (this._myViewer.scene.primitives._primitives[i] === collection) {
+          present = true
           break
         }
       }
+      if ( !present ) {
+        this._myViewer.scene.primitives.add(collection)
+      }
+    },
+    onCheckboxCollectionChange (event) {
+      var arraySelected = event
+      var arrayCheckboxes = this.optionscheckbox.map(function(item) { return item.value })
+      var arrayUnSelected = arrayCheckboxes.filter(x => !arraySelected.includes(x))
+      this.cleanPlayer()
+      for( var val of arrayUnSelected) {
+        switch (val) {
+          case 'rd': {
+            this.CleanMap(this.myRawDataPrimitive)
+            break
+          }
+          case 'ipd': {
+            this.CleanMap(this.myImpossibleDataPrimitive)
+            break
+          }
+          case 'pfd': {
+            this.CleanMap(this.myPrefilteredDataPrimitive)
+            break
+          }
+          case 'ed': {
+            this.CleanMap(this.myEliminatedDataPrimitive)
+            break
+          }
+          case 'fd': {
+            this.CleanMap(this.myfilteredDataPrimitive)
+            break
+          }
+          case 'id': {
+            this.CleanMap(this.myDetected_immoPrimitive)
+            break
+          }
+          case 'cd': {
+            this.CleanMap(this.myCleanDataPrimitive)
+            break
+          }
+          default: {
+            console.log('should never be here')
+            break
+          }
+        }
+      }
+      console.log('test', event.length)
+      if (event.length === 0) {
+        var center = this._myCesium.Cartesian3.fromDegrees(5.369222, 43.292770)
+        this._myViewer.camera.lookAt(center)
+        // this._myViewer.zoomTo(this._myViewer.entities)
+        // this.camera.position.longitude = 5.369222
+        // this.camera.position.latitude = 43.292770
+        // this.camera.position.height = 20000000
+      } else {
+        for (var val of arraySelected) {
+          switch (val) {
+            case 'rd': {
+              this.addToMap(this.myRawDataPrimitive)
+              this.zoomToPrimitive(this.myRawDataPrimitive)
+              break
+            }  
+            case 'ipd': {
+              this.addToMap(this.myImpossibleDataPrimitive)
+              this.zoomToPrimitive(this.myImpossibleDataPrimitive)
+              break
+            }
+            case 'pfd': {
+              this.addToMap(this.myPrefilteredDataPrimitive)
+              this.zoomToPrimitive(this.myPrefilteredDataPrimitive)
+              break
+            }
+            case 'ed': {
+              this.addToMap(this.myEliminatedDataPrimitive)
+              this.zoomToPrimitive(this.myEliminatedDataPrimitive)
+              break
+            }
+            case 'fd': {
+              this.addToMap(this.myfilteredDataPrimitive)
+              this.zoomToPrimitive(this.myfilteredDataPrimitive)
+              break
+            }
+            case 'id': {
+              this.addToMap(this.myDetected_immoPrimitive)
+              this.zoomToPrimitive(this.myDetected_immoPrimitive)
+              break
+            }
+            case 'cd': {
+              this.addToMap(this.myCleanDataPrimitive)
+              this.zoomToPrimitive(this.myCleanDataPrimitive)
+              break
+            }
+            default: {
+              console.log('should never be here')
+              break
+            }
+          }
+        }
+      }
+      // switch (this.lastCheckBoxChecked) {
+      //   case 'rd': {
+      //     console.log('rd selection', selection)
+      //     if (selection === false) {
+      //       this.CleanMap(this.myRawDataPrimitive)
+      //     } else {
+      //       this._myViewer.scene.primitives.add(this.myRawDataPrimitive)
+      //       this.zoomToPrimitive(this.myRawDataPrimitive)
+      //     }
+      //     break
+      //   }
+      //   case 'ipd': {
+      //     if (selection === false) {
+      //       this.CleanMap(this.myImpossibleDataPrimitive)
+      //     } else {
+      //       this._myViewer.scene.primitives.add(this.myImpossibleDataPrimitive)
+      //       this.zoomToPrimitive(this.myImpossibleDataPrimitive)
+      //     }
+      //     break
+      //   }
+      //   case 'pfd': {
+      //     if (selection === false) {
+      //       this.CleanMap(this.myPrefilteredDataPrimitive)
+      //     } else {
+      //       this._myViewer.scene.primitives.add(this.myPrefilteredDataPrimitive)
+      //       this.zoomToPrimitive(this.myPrefilteredDataPrimitive)
+      //     }
+      //     break
+      //   }
+      //   case 'ed': {
+      //     if (selection === false) {
+      //       this.CleanMap(this.myEliminatedDataPrimitive)
+      //     } else {
+      //       this._myViewer.scene.primitives.add(this.myEliminatedDataPrimitive)
+      //       this.zoomToPrimitive(this.myEliminatedDataPrimitive)
+      //     }
+      //     break
+      //   }
+      //   case 'fd': {
+      //     if (selection === false) {
+      //       this.CleanMap(this.myfilteredDataPrimitive)
+      //     } else {
+      //       this._myViewer.scene.primitives.add(this.myfilteredDataPrimitive)
+      //       this.zoomToPrimitive(this.myfilteredDataPrimitive)
+      //     }
+      //     break
+      //   }
+      //   case 'id': {
+      //     if (selection === false) {
+      //       this.CleanMap(this.myDetected_immoPrimitive)
+      //     } else {
+      //       this._myViewer.scene.primitives.add(this.myDetected_immoPrimitive)
+      //       this.zoomToPrimitive(this.myDetected_immoPrimitive)
+      //     }
+      //     break
+      //   }
+      //   case 'cd': {
+      //     if (selection === false) {
+      //       this.CleanMap(this.myCleanDataPrimitive)
+      //     } else {
+      //       this._myViewer.scene.primitives.add(this.myCleanDataPrimitive)
+      //       this.zoomToPrimitive(this.myCleanDataPrimitive)
+      //     }
+      //     break
+      //   }
+      //   default: {
+      //     console.log('should never be here')
+      //     // this._myViewer.zoomTo(this._myViewer.entities)
+      //     // this.camera.position.longitude = 5.369222
+      //     // this.camera.position.latitude = 43.292770
+      //     // this.camera.position.height = 10000000
+      //     break
+      //   }
+      // }
     },
     getElevation (Lat, Lon, Height) {
       // var carto = this._myCesium.Cartographic.fromDegrees(Lon, Lat)
@@ -454,8 +596,8 @@ export default {
     },
     // Function to animate entity collection
     collectionToAnimate (event) {
-      var selection = event.target.checked
-      var value = event.target.value
+      var selection = true
+      var value = event
       // Hide primitive collections
       this.CleanMap(this.myRawDataPrimitive)
       this.CleanMap(this.myImpossibleDataPrimitive)
@@ -1052,13 +1194,13 @@ export default {
     },
     updateElevationPrimitive (collection) {
       // Construct the default list of terrain sources.
-      //var terrainModels = this._myCesium.createDefaultTerrainProviderViewModels()
+      var terrainModels = this._myCesium.createDefaultTerrainProviderViewModels()
 
       // Construct the viewer, with a high-res terrain source pre-selected.
-      // var viewer = new this._myCesium.Viewer('cesiumContainer', {
-      //   terrainProviderViewModels: terrainModels,
-      //   selectedTerrainProviderViewModel: terrainModels[1]  // Select STK High-res terrain
-      // })
+      var viewer = new this._myCesium.Viewer('cesiumContainer', {
+        terrainProviderViewModels: terrainModels,
+        selectedTerrainProviderViewModel: terrainModels[1]  // Select STK High-res terrain
+      })
 
       // Get a reference to the ellipsoid, with terrain on it.  (This API may change soon)
       // var ellipsoid = viewer.scene.globe.ellipsoid
