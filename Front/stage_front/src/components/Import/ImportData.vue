@@ -2611,7 +2611,7 @@ Vue.use(BootstrapVue)
 Vue.use(VueResource)
 export default {
   http: {
-    root : myConfig.apiUrl
+    root: myConfig.apiUrl
   },
   data () {
     return {
