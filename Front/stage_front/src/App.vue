@@ -61,7 +61,7 @@
           <label for="3DT">Terrain transparency</label>
         </div>
       </div>
-      <cesium-viewer :animation="animation" @Tick="Tick" :camera="camera" :fullscreenButton="fullscreenButton" @ready="ready">
+      <cesium-viewer :animation="animation" :navigationHelpButton="navigationHelpButton" :baseLayerPicker="baseLayerPicker" :sceneModePicker="sceneModePicker" :homeButton="homeButton" @Tick="Tick" :camera="camera" :fullscreenButton="fullscreenButton" @ready="ready">
       <cesium-terrain-provider></cesium-terrain-provider>
       </cesium-viewer>
     </div>
@@ -95,6 +95,10 @@ export default {
       animation: false,
       fullscreenButton: true,
       timeline: false,
+      homeButton: true,
+      baseLayerPicker: true,
+      sceneModePicker: true,
+      navigationHelpButton: true,
       camera: {
         position: {
           longitude: 5.369222,
@@ -115,16 +119,16 @@ export default {
         { text: 'Prefiltered data', value: 'pfd' },
         { text: 'Eliminated data', value: 'ed' },
         { text: 'Filtered data', value: 'fd' },
-        { text: 'Clean data', value : 'cd'}
+        { text: 'Clean data', value: 'cd' }
       ],
       optionscheckbox: [
         { text: 'Raw data', value: 'rd' },
-        { text: 'Impossible data', value: 'ipd'},
+        { text: 'Impossible data', value: 'ipd' },
         { text: 'Prefiltered data', value: 'pfd' },
         { text: 'Eliminated data', value: 'ed' },
         { text: 'Filtered data', value: 'fd' },
-        { text: 'Immobility data', value: 'id'},
-        { text: 'Clean data', value : 'cd'}
+        { text: 'Immobility data', value: 'id' },
+        { text: 'Clean data', value: 'cd' }
       ],
       immobility: false
     }
@@ -239,7 +243,7 @@ export default {
       this.customDestroyTimeline()
     },
     CleanMap (collection) {
-      for (var i = this._myViewer.scene.primitives._primitives.length - 1 ; i >= 0  ; i--) {   
+      for (var i = this._myViewer.scene.primitives._primitives.length - 1; i >= 0; i--) {
         if (this._myViewer.scene.primitives._primitives[i] === collection) {
           this._myViewer.scene.primitives._primitives.splice(i, 1)
         }
@@ -253,22 +257,22 @@ export default {
     },
     addToMap (collection) {
       var present = false
-      for (var i = 0; i < this._myViewer.scene.primitives._primitives.length ; i++) {
+      for (var i = 0; i < this._myViewer.scene.primitives._primitives.length; i++) {
         if (this._myViewer.scene.primitives._primitives[i] === collection) {
           present = true
           break
         }
       }
-      if ( !present ) {
+      if (!present) {
         this._myViewer.scene.primitives.add(collection)
       }
     },
     onCheckboxCollectionChange (event) {
       var arraySelected = event
-      var arrayCheckboxes = this.optionscheckbox.map(function(item) { return item.value })
+      var arrayCheckboxes = this.optionscheckbox.map(function (item) { return item.value })
       var arrayUnSelected = arrayCheckboxes.filter(x => !arraySelected.includes(x))
       this.cleanPlayer()
-      for( var val of arrayUnSelected) {
+      for (var val of arrayUnSelected) {
         switch (val) {
           case 'rd': {
             this.CleanMap(this.myRawDataPrimitive)
@@ -313,13 +317,13 @@ export default {
         // this.camera.position.latitude = 43.292770
         // this.camera.position.height = 20000000
       } else {
-        for (var val of arraySelected) {
-          switch (val) {
+        for (var val2 of arraySelected) {
+          switch (val2) {
             case 'rd': {
               this.addToMap(this.myRawDataPrimitive)
               this.zoomToPrimitive(this.myRawDataPrimitive)
               break
-            }  
+            }
             case 'ipd': {
               this.addToMap(this.myImpossibleDataPrimitive)
               this.zoomToPrimitive(this.myImpossibleDataPrimitive)
@@ -1194,13 +1198,13 @@ export default {
     },
     updateElevationPrimitive (collection) {
       // Construct the default list of terrain sources.
-      var terrainModels = this._myCesium.createDefaultTerrainProviderViewModels()
+      // var terrainModels = this._myCesium.createDefaultTerrainProviderViewModels()
 
       // Construct the viewer, with a high-res terrain source pre-selected.
-      var viewer = new this._myCesium.Viewer('cesiumContainer', {
-        terrainProviderViewModels: terrainModels,
-        selectedTerrainProviderViewModel: terrainModels[1]  // Select STK High-res terrain
-      })
+      // var viewer = new this._myCesium.Viewer('cesiumContainer', {
+      //   terrainProviderViewModels: terrainModels,
+      //   selectedTerrainProviderViewModel: terrainModels[1] // Select STK High-res terrain
+      // })
 
       // Get a reference to the ellipsoid, with terrain on it.  (This API may change soon)
       // var ellipsoid = viewer.scene.globe.ellipsoid
@@ -1217,26 +1221,26 @@ export default {
       //     //ok
       //   })
       //   console.log('point updated', pointOfInterest)
-        // [OPTIONAL] Fly the camera there, to see if we got the right point.
-        // viewer.camera.flyTo({
-        //   destination: ellipsoid.cartographicToCartesian(pointOfInterest)
-        // })
-        // Sample the terrain (async) and write the answer to the console.
-        // this._myCesium.sampleTerrain(viewer.terrainProvider, 9, [ pointOfInterest ])
-        // this.height = null
-        // .then(function(samples) {
-        //   // this.height=samples[0].height
-        //   console.log('Height in meters is: ' + samples[0].height)
-        //   // console.log('Height in is: ' + this.height)
-        //   // console.log('Height point 1 avant: ' + collection._pointPrimitives[i]._position.z)
-        //   // var newHeight = this._myCesium.Cartographic.toCartesian(samples[0].height, ellipsoid)
-        //   // console.log('newpos', newHeight)
-        //   // collection._pointPrimitives[i]._position.z = newHeight
-        //   // console.log('Height point 1 apres: ' + collection._pointPrimitives[i]._position.z)
-        // })
-        // console.log('Height out is: ' + this.height)
+      // [OPTIONAL] Fly the camera there, to see if we got the right point.
+      // viewer.camera.flyTo({
+      //   destination: ellipsoid.cartographicToCartesian(pointOfInterest)
+      // })
+      // Sample the terrain (async) and write the answer to the console.
+      // this._myCesium.sampleTerrain(viewer.terrainProvider, 9, [ pointOfInterest ])
+      // this.height = null
+      // .then(function(samples) {
+      //   // this.height=samples[0].height
+      //   console.log('Height in meters is: ' + samples[0].height)
+      //   // console.log('Height in is: ' + this.height)
+      //   // console.log('Height point 1 avant: ' + collection._pointPrimitives[i]._position.z)
+      //   // var newHeight = this._myCesium.Cartographic.toCartesian(samples[0].height, ellipsoid)
+      //   // console.log('newpos', newHeight)
+      //   // collection._pointPrimitives[i]._position.z = newHeight
+      //   // console.log('Height point 1 apres: ' + collection._pointPrimitives[i]._position.z)
+      // })
+      // console.log('Height out is: ' + this.height)
       // }
-        // collection._pointPrimitives[i]._position.z = samples[0].height
+      // collection._pointPrimitives[i]._position.z = samples[0].height
       // debugger
       // var terrainProvider = this._myViewer.terrainProvider
       // for (var i = 0; i < collection.length; i++) {
@@ -1244,15 +1248,15 @@ export default {
       //   console.log('position carto', position)
       //   var height = this._myViewer.scene.sampleHeight(terrainProvider, position)
       //   console.log('height', height)
-        // var position = [
-        //
-        // ]
-        // // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
-        // var promise = this._myCesium.sampleTerrain(terrainProvider, 2, position)
-        // this._myCesium.when(promise, function (updatedPositions) {
-        //   console.log('elevation', position[0].height)
-        //   // collection._pointPrimitives[i]._position.z = position[0].height
-        // })
+      // var position = [
+      //
+      // ]
+      // // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
+      // var promise = this._myCesium.sampleTerrain(terrainProvider, 2, position)
+      // this._myCesium.when(promise, function (updatedPositions) {
+      //   console.log('elevation', position[0].height)
+      //   // collection._pointPrimitives[i]._position.z = position[0].height
+      // })
     }
   },
   // Create collections and config object
@@ -1307,13 +1311,13 @@ export default {
           outlineColor: 4294967295,
           references: _this.myfilteredDataPrimitive
         },
-        'myImmobilityData': { //à modifier
+        'myImmobilityData': { //  à modifier
           defaultColor: 4278222848,
           clickedColor: 4278190335,
           outlineColor: 4294967295,
           references: _this.myfilteredDataPrimitive
         },
-        'myCleanData': { //à modifier
+        'myCleanData': { // à modifier
           defaultColor: 4278222848,
           clickedColor: 4278190335,
           outlineColor: 4294967295,
@@ -1344,10 +1348,10 @@ export default {
         for (var iti in data[4]) {
           _this.Detected_immoPrimitive.add(_this.createPointPrimitive(data[4][iti], this._myCesium.Color.WHITE, this._myCesium.Color.RED))
         }
-        for (var itc in data[5]) { //modif couleurs
+        for (var itc in data[5]) { // modif couleurs
           _this.myCleanDataPrimitive.add(_this.createPointPrimitive(data[5][itc], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor)) // to create points
           _this.myCleanDataEntity.entities.add(_this.createPointEntity(data[5][itc], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor))
-      }
+        }
       }
     })
   },
