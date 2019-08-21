@@ -3,14 +3,14 @@
     <visualization></visualization>
     <Parameters></Parameters>
     <ImportData @UpdateData='cleanCollection'></ImportData>
-    <Export @downloadcsv='ManageData'></Export>
-    <div class="viewer" ref="myViewer">
+    
+    <div class="viewer col-4" ref="myViewer">
       <!-- <div id="immo" v-if="immobility">
         <b-alert>An immobility has been detected</b-alert>
       </div> -->
       <div id="interact_data" class="demo-tool">
         <div id='primitive' v-if="displayCheckbox">
-          <b-form-group label="Choose the collection to display">
+          <h2>Choose the collection to display</h2>
             <b-form-checkbox-group
               id="checkbox-group-1"
               v-model="selected"
@@ -33,10 +33,10 @@
             <input id = "cd" value="cd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
             <label for="cd">Clean data</label> -->
           </b-form-group>
-          <button v-on:click="remove_point" >Remove point</button>
+          <!-- <button v-on:click="remove_point" >Remove point</button> -->
         </div>
         <div id='player' v-if="displayCheckbox">
-          <b-form-group label="Choose the collection to display with the player">
+          <b-form-group label="PLAYER MODE">
             <b-form-radio-group
               v-model="picked"
               :options="optionsRadios"
@@ -56,15 +56,18 @@
             <!-- <b-form-radio-group id="btn-radios-1" v-model="picked" :options="entitycoll" buttons name="display_coll" @change="collectionToAnimate($event)"></b-form-radio-group> -->
           </b-form-group>
         </div>
-        <div id='globeOptions'>
-          <b-form-checkbox id = "3DT" v-model="terrainTransparency" @change="displayTransparency($event)" switch/>
-          <label for="3DT">Terrain transparency</label>
-        </div>
+        <Export @downloadcsv='ManageData'></Export>
+        
       </div>
-      <cesium-viewer :animation="animation" :navigationHelpButton="navigationHelpButton" :baseLayerPicker="baseLayerPicker" :sceneModePicker="sceneModePicker" :homeButton="homeButton" @Tick="Tick" :camera="camera" :fullscreenButton="fullscreenButton" @ready="ready">
+    </div>
+    <div id='globeOptions'>
+      <b-form-checkbox id = "3DT" v-model="terrainTransparency" @change="displayTransparency($event)" switch/>
+      <label for="3DT">Terrain transparency</label>
+    </div>
+
+    <cesium-viewer :animation="animation" :navigationHelpButton="navigationHelpButton" :baseLayerPicker="baseLayerPicker" :sceneModePicker="sceneModePicker" :homeButton="homeButton" @Tick="Tick" :camera="camera" :fullscreenButton="fullscreenButton" @ready="ready">
       <cesium-terrain-provider></cesium-terrain-provider>
       </cesium-viewer>
-    </div>
   </div>
 </template>
 
@@ -118,8 +121,7 @@ export default {
         { text: 'Raw data', value: 'rd' },
         { text: 'Prefiltered data', value: 'pfd' },
         { text: 'Eliminated data', value: 'ed' },
-        { text: 'Filtered data', value: 'fd' },
-        { text: 'Clean data', value: 'cd' }
+        { text: 'Filtered data', value: 'fd' }
       ],
       optionscheckbox: [
         { text: 'Raw data', value: 'rd' },
@@ -127,8 +129,7 @@ export default {
         { text: 'Prefiltered data', value: 'pfd' },
         { text: 'Eliminated data', value: 'ed' },
         { text: 'Filtered data', value: 'fd' },
-        { text: 'Immobility data', value: 'id' },
-        { text: 'Clean data', value: 'cd' }
+        { text: 'Immobility data', value: 'id' }
       ],
       immobility: false
     }
@@ -1424,16 +1425,204 @@ export default {
 </script>
 
 <style>
+@font-face {
+ font-family: 'Exo';
+ src: url("~@/assets/font/Exo2-Medium.ttf") format("ttf");
+}
 .viewer {
   width: 100%;
-  height: 800px;
 }
 #app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
+  font-family: 'Exo', 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
+  position: relative;
+  height: calc(100vh - 88px);
+  margin-top: 88px;
+  font-size: 15px;
+}
+.col-4{
+  padding-left: 30px;
+  padding-right: 20px;
+}
+#parameters{
+  margin-top: 30px;
+}
+div h2{
+  background: #6eb0ed;
+  color: #fff;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 10px;
+  font-size: 1.1rem;
+  position: relative;
+}
+div#technology h2.collapsed:after{
+  content: ' ';
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 7px 5.5px 0 5.5px;
+  border-color: #fff transparent transparent transparent;
+  position: absolute;
+  right: 10px;
+  top: 18px;
+  transition: all 0.2s ease-in-out;
+}
+div#technology h2:not(.collapsed):after{
+  content: ' ';
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 7px 5.5px 0 5.5px;
+  border-color: #fff transparent transparent transparent;
+  position: absolute;
+  right: 10px;
+  top: 18px;
+  transition: all 0.2s ease-in-out;
+  transform: rotate(180deg);
+}
+form div{
+  display: inline-flex;
+  width: 100%;
+  margin-bottom: 15px;
+}
+form div label {
+  width: 29%;
+  text-align: left;
+  line-height: 19px;
+  margin-bottom: 0px;
+}
+form div select, form div input{
+  width: 65%;
+  border-radius: 0px !important;
+}
+form div:last-of-type label{
+  margin-right: 0;
+}
+form div:last-of-type{
+  justify-content: space-between;
+}
+form div:last-of-type label{
+  width: 20%;
+}
+form div:last-of-type input{
+  width: 27%;
+}
+/* FICHIER */
+.fields{
+  position: relative;
+  margin: 20px 0px;
+}
+.fields input{
+  width: 100%;
+}
+.fields input:focus{
+  outline: none !important;
+  border: none !important;
+}
+.fields button{
+  width: 128px !important;
+  font-size: 12px;
+  position: absolute;
+  padding: 5px 4px;
+}
+.fields button label{
+  margin-bottom: 0px;
+}
+.fields button label:hover{
+  cursor: pointer;
+}
+button:disabled{
+  opacity: 0.6;
+}
+/* IMPORT */
+#import{
+  margin-bottom: 20px;
+}
+#import textarea{
+  display: none;
+}
+/* #import button{
+  margin-bottom: 10px;
+} */
+button{
+  background: #1b568c;
+  color: #fff;
+  text-transform: uppercase;
+  border: none;
+  font-size: 1em;
+  padding: 5px;
+  width: 100%;
+  -webkit-box-shadow: 0px 10px 9px -10px rgba(0,0,0,0.50);
+  -moz-box-shadow: 0px 10px 9px -10px rgba(0,0,0,0.50);
+  box-shadow: 0px 10px 9px -10px rgba(0,0,0,0.50);
+}
+/* CHECKBOXES */
+#checkbox-group-1{
+  display: inline-flex;
+  flex-wrap: wrap;
+}
+.custom-control.custom-control-inline.custom-checkbox {
+  width: 29%;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+/* PLAYER */
+#player{
+  border-top: solid 1px #6eb0ed;
+  border-bottom: solid 1px #6eb0ed;
+  padding-top: 10px;
+  margin-bottom: 15px;
+}
+#player fieldset{
+  margin-bottom: 0px;
+}
+#player fieldset div:first-of-type{
+  display: inline-flex;
+  flex-wrap: wrap;
+  width: 100%;
+}
+#player fieldset legend{
+  text-align: left;
+  font-weight: bold;
+  font-size: 1em;
+}
+#player fieldset div:first-of-type .custom-control.custom-control-inline.custom-radio{
+  width: 29%;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+/* EXPORT */
+#export{
+  text-align: left;
+}
+#export button{
+  font-size: 14px;
+  width: fit-content;
+  padding: 5px 15px;
+}
+/* TRANSPARENCE */
+#globeOptions{
+  width: fit-content;
+  position: absolute;
+  bottom: 0;
+  left: 30%;
+  transform: translateX(45%);
+  display: inline-flex;
+}
+#globeOptions label{
+  margin-bottom: 5px;
+}
+/* MAP */
+#cesiumContainer{
+  width: 66% !important;
+  height: calc(100% - 120px) !important;
+  position: fixed;
+  top: 88px;
+  bottom: 0;
+  right: 0;
 }
 </style>

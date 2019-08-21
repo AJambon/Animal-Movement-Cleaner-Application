@@ -1,8 +1,11 @@
 <template>
-    <div id='import'>
-        <h1> Voilà la zone d'import </h1>
+    <div id='import' class='col-4'>
+        <!-- <h1> Voilà la zone d'import </h1> -->
             <div class="fields">
-              <label>Upload File</label><br/>
+              <!-- <label>Upload File</label><br/> -->
+              <button>
+                <label for="csv-file">Choose your file</label>
+              </button>
               <input id="csv-file" name="newcsv" type="file" ref="file" accept=".csv" v-on:change="onSelect()"/>
             </div>
             <div class="message">
