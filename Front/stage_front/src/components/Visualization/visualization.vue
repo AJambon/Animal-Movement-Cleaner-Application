@@ -50,4 +50,9 @@ header a{
   display: flex;
   align-items: center;
 }
+header a:hover{
+  color: #fff;
+  background-color: #2367a5;
+  text-decoration: none;
+}
 </style>

@@ -1459,6 +1459,9 @@ div h2{
   font-size: 1.1rem;
   position: relative;
 }
+div#technology h2:hover{
+  cursor: pointer;
+}
 div#technology h2.collapsed:after{
   content: ' ';
   width: 0;
