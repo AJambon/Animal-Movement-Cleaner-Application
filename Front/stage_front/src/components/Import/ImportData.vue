@@ -1,8 +1,11 @@
 <template>
-    <div id='import'>
-        <h1> Voilà la zone d'import </h1>
+    <div id='import' class='col-4'>
+        <!-- <h1> Voilà la zone d'import </h1> -->
             <div class="fields">
-              <label>Upload File</label><br/>
+              <!-- <label>Upload File</label><br/> -->
+              <button>
+                <label for="csv-file">Choose your file</label>
+              </button>
               <input id="csv-file" name="newcsv" type="file" ref="file" accept=".csv" v-on:change="onSelect()"/>
             </div>
             <div class="message">
@@ -2593,10 +2596,7 @@
 2583,2019-05-28T08:00:00.000,45.217490,06.696960,,,
 2584,2019-05-28T08:00:00.000,45.217810,06.697310,1369,1.2,3D
  -->
-          <button v-on:click="mysubmit();UpdateData()"> Import </button>
-        <!-- <div class="text-center">
-          <b-spinner variant="primary" label="Text Centered"></b-spinner>
-        </div> -->
+          <button v-on:click="submit ? UpdateData() : mysubmit()"> Import </button>
     </div>
 </template>
 
@@ -2618,7 +2618,9 @@ export default {
       file: '',
       message: '',
       parameters: null,
-      loading: false
+      loading: false,
+      submit: false,
+      submit1:[]
     }
   },
   created () {
@@ -2628,7 +2630,14 @@ export default {
   },
   methods: {
     UpdateData () {
-      this.$emit('UpdateData', true)
+      if (this.submit== false) {
+        if (confirm('You are going to loose current data, do you still want to proceed ?')) {
+          this.$emit('UpdateData', true)
+          this.mysubmit()
+        } else {
+          console.log('cancel')
+        }
+      }
     },
     onSelect () {
       const file = this.$refs.file.files[0]
@@ -2655,6 +2664,7 @@ export default {
             }
           ).then((response) => {
             console.log('SUCCESS!!')
+            this.submit = true
             this.$root.$emit('eventing', response.data)
           })
             .catch(function () {
@@ -2672,7 +2682,8 @@ export default {
                   'Content-Type': 'multipart/form-data'
                 }
               }).then((response) => {
-              this.$root.$emit('eventing', response.data)
+                this.submit = true
+                this.$root.$emit('eventing', response.data)
             },
             (response) => {
               console.log('erreur', response)
@@ -2684,6 +2695,12 @@ export default {
         }
       }
     }
+  },
+  mounted(){
+    var _this = this
+    this.$root.$on('NoUpdate', data => {
+      _this.submit=data
+    })
   }
 }
 </script>

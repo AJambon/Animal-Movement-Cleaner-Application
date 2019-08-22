@@ -1,17 +1,17 @@
 <template>
   <div id='export'>
-    <button id='B1' v-on:click="download_csv">Download CSV</button>
+    <button id='B1' v-on:click="download_csv" :disabled="enableButton">Download CSV</button>
   </div>
 </template>
 
 <script>
 
 export default {
-  // data () {
-  //   return {
-  //     enableButton: true
-  //   }
-  // },
+  data () {
+    return {
+      enableButton: true
+    }
+  },
   methods: {
     download_csv () {
       this.$emit('downloadcsv', true)
@@ -29,9 +29,11 @@ export default {
     }
   },
   mounted () {
-    document.getElementById('B1').disabled = true
-    this.$root.$on('eventing', data => {
-      document.getElementById('B1').disabled = false
+    // document.getElementById('B1').disabled = true
+    var _this = this
+    this.$root.$on('AbleButton', data => {
+      _this.enableButton = data
+      console.log('csv', data)
     })
     // this.$root.$on('UpdateData', true => {
     //   this.enableButton = false
