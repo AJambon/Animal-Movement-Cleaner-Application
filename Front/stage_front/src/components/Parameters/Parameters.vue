@@ -22,6 +22,7 @@
           <b-form-input id="species" v-model="parameters.species" required placeholder="Enter species" @change="parametersSelection"></b-form-input>
           <b-form-input id="max_speed" v-model="parameters.speed" required placeholder="Enter species max speed" @change="parametersSelection"></b-form-input>
           <b-form-input id="immo_time" v-model="parameters.immoTime" required placeholder="Enter minimum immobility duration to consider it as immobility detection" @change="parametersSelection"></b-form-input>
+          <b-form-input id="deployment_date" type = "datetime-local" v-model="parameters.deploymentDate" @change="parametersSelection"></b-form-input>
         </b-form>
       </div>
     </div>
@@ -45,7 +46,8 @@ export default {
         speciesType: 'Terrestrian',
         species: 'EV',
         speed: '52',
-        immoTime: '24'
+        immoTime: '24',
+        deploymentDate:"2018-04-17T08:00"
       }
     }
   },
