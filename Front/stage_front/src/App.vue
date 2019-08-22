@@ -2,69 +2,54 @@
   <div id="app">
     <visualization></visualization>
     <Parameters></Parameters>
-    <ImportData @UpdateData='cleanCollection'></ImportData>
-    <Export @downloadcsv='ManageData'></Export>
-    <div class="viewer" ref="myViewer">
-      <!-- <div id="immo" v-if="immobility">
-        <b-alert>An immobility has been detected</b-alert>
-      </div> -->
+    <ImportData @UpdateData='cleanCollection' @loading ='spinnerOn'></ImportData>
+    <!-- <input type="text" id="name" class="form-control col-4" name="name" :disabled="myRawDataPrimitive.length > 0"> -->
+    <div class="viewer col-4" ref="myViewer">
       <div id="interact_data" class="demo-tool">
-        <div id='primitive' v-if="displayCheckbox">
-          <b-form-group label="Choose the collection to display">
-            <b-form-checkbox-group
-              id="checkbox-group-1"
-              v-model="selected"
-              :options="optionscheckbox"
-              name="flavour-1"
-              @change="onCheckboxCollectionChange($event)"
-            ></b-form-checkbox-group>
-            <!-- <input id = "rd" value="rd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="rd">Raw data</label>
-            <input id = "ipd" value="ipd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="ipd">Impossible data</label>
-            <input id = "pfd" value="pfd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="pfd">Prefiltered data</label>
-            <input id = "ed" value="ed" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="ed">Eliminated data</label>
-            <input id = "fd" value="fd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="fd">Filtered data</label>
-            <input id = "id" value="id" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="id">Immobility Data</label>
-            <input id = "cd" value="cd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="cd">Clean data</label> -->
-          </b-form-group>
-          <button v-on:click="remove_point" >Remove point</button>
+        <div v-if="displayCheckbox">
+          <div id='primitive'>
+            <h2>Choose the collection to display</h2>
+            <b-form-group>
+              <b-form-checkbox-group id="checkbox-group-1" v-model="selected" name="flavour-1" @change="onCheckboxCollectionChange($event)">
+                <b-form-checkbox value="rd" :disabled="myRawDataPrimitive.length == 0">Raw data</b-form-checkbox>
+                <b-form-checkbox value="ipd" :disabled="myImpossibleDataPrimitive.length == 0">Impossible data</b-form-checkbox>
+                <b-form-checkbox value="pfd" :disabled="myPrefilteredDataPrimitive.length == 0">Prefiltered data</b-form-checkbox>
+                <b-form-checkbox value="ed" :disabled="myEliminatedDataPrimitive.length == 0">Eliminated data</b-form-checkbox>
+                <b-form-checkbox value="fd" :disabled="myfilteredDataPrimitive.length == 0">Filtered data</b-form-checkbox>
+                <b-form-checkbox value="id" :disabled="myDetected_immoPrimitive.length == 0">Immobility data</b-form-checkbox>
+              </b-form-checkbox-group>
+              <div>Selected in filtered data: <strong>{{ pointsToRemoveFd }}</strong></div>
+              <div>Selected in eliminated data: <strong>{{ pointsToRemoveEd }}</strong></div>
+            </b-form-group>
+            <button v-on:click="remove_point" >Remove point</button>
+          </div>
+          <div id='player'>
+            <b-form-group label="PLAYER MODE">
+              <b-form-radio-group
+                v-model="picked"
+                :options="optionsRadios"
+                name="radio-inline"
+                @change="collectionToAnimate($event)"
+              ></b-form-radio-group>
+            </b-form-group>
+          </div>
         </div>
-        <div id='player' v-if="displayCheckbox">
-          <b-form-group label="Choose the collection to display with the player">
-            <b-form-radio-group
-              v-model="picked"
-              :options="optionsRadios"
-              name="radio-inline"
-              @change="collectionToAnimate($event)"
-            ></b-form-radio-group>
-            <!-- <input id = "rd" value="rd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-            <label for="rd">Raw data</label>
-            <input id = "pfd" value="pfd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-            <label for="pfd">Prefiltered data</label>
-            <input id = "ed" value="ed" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-            <label for="ed">Eliminated data</label>
-            <input id = "fd" value="fd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-            <label for="fd">Filtered data</label>
-            <input id = "cd" value="cd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-            <label for="cd">Clean data</label> -->
-            <!-- <b-form-radio-group id="btn-radios-1" v-model="picked" :options="entitycoll" buttons name="display_coll" @change="collectionToAnimate($event)"></b-form-radio-group> -->
-          </b-form-group>
+        <div v-else-if='loading'>
+          <div class="d-flex justify-content-center mb-3">
+              <b-spinner label="Loading..."></b-spinner>
+          </div>
         </div>
-        <div id='globeOptions'>
-          <b-form-checkbox id = "3DT" v-model="terrainTransparency" @change="displayTransparency($event)" switch/>
-          <label for="3DT">Terrain transparency</label>
-        </div>
+        <Export @downloadcsv='ManageData'></Export>
       </div>
-      <cesium-viewer :animation="animation" @Tick="Tick" :camera="camera" :fullscreenButton="fullscreenButton" @ready="ready">
-      <cesium-terrain-provider></cesium-terrain-provider>
-      </cesium-viewer>
     </div>
+    <div id='globeOptions'>
+      <b-form-checkbox id = "3DT" v-model="terrainTransparency" @change="displayTransparency($event)" switch/>
+      <label for="3DT">Terrain transparency</label>
+    </div>
+
+    <cesium-viewer :animation="animation" :navigationHelpButton="navigationHelpButton" :baseLayerPicker="baseLayerPicker" :sceneModePicker="sceneModePicker" :homeButton="homeButton" @Tick="Tick" :camera="camera" :fullscreenButton="fullscreenButton" @ready="ready">
+      <cesium-terrain-provider></cesium-terrain-provider>
+    </cesium-viewer>
   </div>
 </template>
 
@@ -95,6 +80,16 @@ export default {
       animation: false,
       fullscreenButton: true,
       timeline: false,
+      homeButton: true,
+      baseLayerPicker: false,
+      sceneModePicker: true,
+      navigationHelpButton: true,
+      myRawDataPrimitive: [],
+      myImpossibleDataPrimitive: [],
+      myPrefilteredDataPrimitive: [],
+      myEliminatedDataPrimitive: [],
+      myfilteredDataPrimitive: [],
+      myDetected_immoPrimitive: [],
       camera: {
         position: {
           longitude: 5.369222,
@@ -106,6 +101,10 @@ export default {
         roll: 0
       },
       displayCheckbox: false,
+      loading: false,
+      // immobility: false,
+      pointsToRemoveFd: [],
+      pointsToRemoveEd: [],
       mySelectedPoints: [],
       terrainTransparency: false,
       selected: [],
@@ -113,23 +112,33 @@ export default {
       optionsRadios: [
         { text: 'Raw data', value: 'rd' },
         { text: 'Prefiltered data', value: 'pfd' },
-        { text: 'Eliminated data', value: 'ed' },
-        { text: 'Filtered data', value: 'fd' },
-        { text: 'Clean data', value : 'cd'}
+        // { text: 'Eliminated data', value: 'ed' },
+        { text: 'Filtered data', value: 'fd' }
       ],
       optionscheckbox: [
         { text: 'Raw data', value: 'rd' },
-        { text: 'Impossible data', value: 'ipd'},
+        { text: 'Impossible data', value: 'ipd' },
         { text: 'Prefiltered data', value: 'pfd' },
         { text: 'Eliminated data', value: 'ed' },
         { text: 'Filtered data', value: 'fd' },
-        { text: 'Immobility data', value: 'id'},
-        { text: 'Clean data', value : 'cd'}
-      ],
-      immobility: false
+        { text: 'Immobility data', value: 'id', disabled: true }
+      ]
     }
   },
   methods: {
+    homeButtonLocation() {
+      if ("geolocation" in navigator) {
+        // check if geolocation is supported/enabled on current browser
+        navigator.geolocation.getCurrentPosition(
+        function success(position) {
+        // for when getting location is a success
+        console.log('latitude', position.coords.latitude, 'longitude', position.coords.longitude)
+        })
+      }
+    },
+    spinnerOn () {
+      this.loading = true
+    },
     // Function that enables to update current time when selected by hand
     onTimelineScrubfunction (e) {
       this._myViewer.clock.currentTime = e.timeJulian
@@ -239,7 +248,7 @@ export default {
       this.customDestroyTimeline()
     },
     CleanMap (collection) {
-      for (var i = this._myViewer.scene.primitives._primitives.length - 1 ; i >= 0  ; i--) {   
+      for (var i = this._myViewer.scene.primitives._primitives.length - 1; i >= 0; i--) {
         if (this._myViewer.scene.primitives._primitives[i] === collection) {
           this._myViewer.scene.primitives._primitives.splice(i, 1)
         }
@@ -253,22 +262,22 @@ export default {
     },
     addToMap (collection) {
       var present = false
-      for (var i = 0; i < this._myViewer.scene.primitives._primitives.length ; i++) {
+      for (var i = 0; i < this._myViewer.scene.primitives._primitives.length; i++) {
         if (this._myViewer.scene.primitives._primitives[i] === collection) {
           present = true
           break
         }
       }
-      if ( !present ) {
+      if (!present) {
         this._myViewer.scene.primitives.add(collection)
       }
     },
     onCheckboxCollectionChange (event) {
       var arraySelected = event
-      var arrayCheckboxes = this.optionscheckbox.map(function(item) { return item.value })
+      var arrayCheckboxes = this.optionscheckbox.map(function (item) { return item.value })
       var arrayUnSelected = arrayCheckboxes.filter(x => !arraySelected.includes(x))
       this.cleanPlayer()
-      for( var val of arrayUnSelected) {
+      for (var val of arrayUnSelected) {
         switch (val) {
           case 'rd': {
             this.CleanMap(this.myRawDataPrimitive)
@@ -294,10 +303,6 @@ export default {
             this.CleanMap(this.myDetected_immoPrimitive)
             break
           }
-          case 'cd': {
-            this.CleanMap(this.myCleanDataPrimitive)
-            break
-          }
           default: {
             console.log('should never be here')
             break
@@ -306,20 +311,21 @@ export default {
       }
       console.log('test', event.length)
       if (event.length === 0) {
-        var center = this._myCesium.Cartesian3.fromDegrees(5.369222, 43.292770)
-        this._myViewer.camera.lookAt(center)
+        console.log('rien n est coché')
+        // var center = this._myCesium.Cartesian3.fromDegrees(5.369222, 43.292770)
+        // this._myViewer.camera.lookAt(center)
         // this._myViewer.zoomTo(this._myViewer.entities)
         // this.camera.position.longitude = 5.369222
         // this.camera.position.latitude = 43.292770
         // this.camera.position.height = 20000000
       } else {
-        for (var val of arraySelected) {
-          switch (val) {
+        for (var val2 of arraySelected) {
+          switch (val2) {
             case 'rd': {
               this.addToMap(this.myRawDataPrimitive)
               this.zoomToPrimitive(this.myRawDataPrimitive)
               break
-            }  
+            }
             case 'ipd': {
               this.addToMap(this.myImpossibleDataPrimitive)
               this.zoomToPrimitive(this.myImpossibleDataPrimitive)
@@ -341,13 +347,9 @@ export default {
               break
             }
             case 'id': {
+              console.log(this.myDetected_immoPrimitive)
               this.addToMap(this.myDetected_immoPrimitive)
               this.zoomToPrimitive(this.myDetected_immoPrimitive)
-              break
-            }
-            case 'cd': {
-              this.addToMap(this.myCleanDataPrimitive)
-              this.zoomToPrimitive(this.myCleanDataPrimitive)
               break
             }
             default: {
@@ -357,136 +359,24 @@ export default {
           }
         }
       }
-      // switch (this.lastCheckBoxChecked) {
-      //   case 'rd': {
-      //     console.log('rd selection', selection)
-      //     if (selection === false) {
-      //       this.CleanMap(this.myRawDataPrimitive)
-      //     } else {
-      //       this._myViewer.scene.primitives.add(this.myRawDataPrimitive)
-      //       this.zoomToPrimitive(this.myRawDataPrimitive)
-      //     }
-      //     break
-      //   }
-      //   case 'ipd': {
-      //     if (selection === false) {
-      //       this.CleanMap(this.myImpossibleDataPrimitive)
-      //     } else {
-      //       this._myViewer.scene.primitives.add(this.myImpossibleDataPrimitive)
-      //       this.zoomToPrimitive(this.myImpossibleDataPrimitive)
-      //     }
-      //     break
-      //   }
-      //   case 'pfd': {
-      //     if (selection === false) {
-      //       this.CleanMap(this.myPrefilteredDataPrimitive)
-      //     } else {
-      //       this._myViewer.scene.primitives.add(this.myPrefilteredDataPrimitive)
-      //       this.zoomToPrimitive(this.myPrefilteredDataPrimitive)
-      //     }
-      //     break
-      //   }
-      //   case 'ed': {
-      //     if (selection === false) {
-      //       this.CleanMap(this.myEliminatedDataPrimitive)
-      //     } else {
-      //       this._myViewer.scene.primitives.add(this.myEliminatedDataPrimitive)
-      //       this.zoomToPrimitive(this.myEliminatedDataPrimitive)
-      //     }
-      //     break
-      //   }
-      //   case 'fd': {
-      //     if (selection === false) {
-      //       this.CleanMap(this.myfilteredDataPrimitive)
-      //     } else {
-      //       this._myViewer.scene.primitives.add(this.myfilteredDataPrimitive)
-      //       this.zoomToPrimitive(this.myfilteredDataPrimitive)
-      //     }
-      //     break
-      //   }
-      //   case 'id': {
-      //     if (selection === false) {
-      //       this.CleanMap(this.myDetected_immoPrimitive)
-      //     } else {
-      //       this._myViewer.scene.primitives.add(this.myDetected_immoPrimitive)
-      //       this.zoomToPrimitive(this.myDetected_immoPrimitive)
-      //     }
-      //     break
-      //   }
-      //   case 'cd': {
-      //     if (selection === false) {
-      //       this.CleanMap(this.myCleanDataPrimitive)
-      //     } else {
-      //       this._myViewer.scene.primitives.add(this.myCleanDataPrimitive)
-      //       this.zoomToPrimitive(this.myCleanDataPrimitive)
-      //     }
-      //     break
-      //   }
-      //   default: {
-      //     console.log('should never be here')
-      //     // this._myViewer.zoomTo(this._myViewer.entities)
-      //     // this.camera.position.longitude = 5.369222
-      //     // this.camera.position.latitude = 43.292770
-      //     // this.camera.position.height = 10000000
-      //     break
-      //   }
-      // }
-    },
-    getElevation (Lat, Lon, Height) {
-      // var carto = this._myCesium.Cartographic.fromDegrees(Lon, Lat)
-      // var position = new this._myCesium.Cartographic(carto.longitude, carto.latitude)
-      // var height = this._myViewer.scene.sampleHeight(position)
-      // console.log(height)
-      // debugger
-      // var elevation = null
-      // var originalHeight = Height
-      // Construct the default list of terrain sources.
-      // var terrainModels = Cesium.createDefaultTerrainProviderViewModels();
-      // // Construct the viewer, with a high-res terrain source pre-selected.
-      // var viewer = new Cesium.Viewer('cesiumContainer', {
-      //   terrainProviderViewModels: terrainModels,
-      //   selectedTerrainProviderViewModel: terrainModels[1]  // Select STK High-res terrain
-      // });
-      // // Get a reference to the ellipsoid, with terrain on it.  (This API may change soon)
-      // var ellipsoid = viewer.scene.globe.ellipsoid;
-      // // Specify our point of interest.
-      // var pointOfInterest = Cesium.Cartographic.fromDegrees(-99.64592791446208, 61.08658108795938, 5000, new Cesium.Cartographic())
-      // // Sample the terrain (async) and write the answer to the console.
-      // Cesium.sampleTerrain(viewer.terrainProvider, 9, [ pointOfInterest ])
-      // .then(function(samples) {
-      //   //console.log('Height in meters is: ' + samples[0].height);
-      // })
-      // var terrainProvider = this._myViewer.terrainProvider
-      // var position = [
-      //   this._myCesium.Cartographic.fromDegrees(Lon, Lat)
-      // ]
-      // // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
-      // var promise = this._myCesium.sampleTerrain(terrainProvider, 2, position)
-      // this._myCesium.when(promise, function (updatedPositions) {
-      //   elevation = position[0].height
-      //   return 3000
-      //   // console.log('elevation', position[0].height)
-      // })
-      // console.log('elevation', elevation)
     },
     // functions to create the points primitives from imported data
     createPointPrimitive (options, color, outlineColor) {
-      // console.log('id', options.id)
-      // var newHeight = this.getElevation(options.LAT, options.LON,3000)
-      // console.log("point",options)
-      // console.log("height",newHeight)
-      return new this._myCesium.PointPrimitive(
+      var newPoint = new this._myCesium.PointPrimitive(
         {
           id: options.id,
           show: true,
           allowPicking: true,
           color: this._myCesium.Color.fromRgba(color),
+          // color: color,
           outlineColor: this._myCesium.Color.fromRgba(outlineColor),
           outlineWidth: 2,
-          position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, options.elevation, this._myCesium.Ellipsoid.WGS84)
+          position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, options.elevation, this._myCesium.Ellipsoid.WGS84),
+          heightReference: this._myCesium.HeightReference.CLAMP_TO_GROUND
           // position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, this.getElevation(options.LAT, options.LON, options.elevation), this._myCesium.Ellipsoid.WGS84)
         }
       )
+      return newPoint
     },
     // functions to create the points entities from imported data
     createPointEntity (options, color, outlineColor) {
@@ -502,7 +392,8 @@ export default {
             pixelSize: 5,
             color: this._myCesium.Color.fromRgba(color),
             outlineColor: this._myCesium.Color.fromRgba(outlineColor),
-            outlineWidth: 2
+            outlineWidth: 2,
+            heightReference : this._myCesium.HeightReference.CLAMP_TO_GROUND
           },
           label: {
             text: options.id,
@@ -510,7 +401,8 @@ export default {
             style: this._myCesium.LabelStyle.FILL_AND_OUTLINE,
             outlineWidth: 2,
             verticalOrigin: this._myCesium.VerticalOrigin.BOTTOM,
-            pixelOffset: new this._myCesium.Cartesian2(0, -9)
+            pixelOffset: new this._myCesium.Cartesian2(0, -9),
+            heightReference : this._myCesium.HeightReference.CLAMP_TO_GROUND
           }
         }
       )
@@ -605,12 +497,8 @@ export default {
       this.CleanMap(this.myEliminatedDataPrimitive)
       this.CleanMap(this.myfilteredDataPrimitive)
       this.CleanMap(this.myDetected_immoPrimitive)
-      this.CleanMap(this.myCleanDataPrimitive)
       // Uncheck all the checkboxes
-      var allcheckbox = document.querySelectorAll('div#primitive input')
-      for (var i = 0; i < allcheckbox.length; i++) {
-        allcheckbox[i].checked = false
-      }
+      this.selected = []
       this.collectiontoplay = value
       this.initPlayer()
       this.currentCollection = null
@@ -827,8 +715,8 @@ export default {
                 ]
               ),
               width: 2,
-              material: this._myCesium.Color.RED
-              // clampToGround: true
+              material: this._myCesium.Color.RED,
+              clampToGround: true
               // followSurface: new this._myCesium.ConstantProperty(true)
             }
           })
@@ -949,10 +837,6 @@ export default {
             this.player(this.myfilteredDataEntity, date)
             break
           }
-          case 'cd': {
-            this.player(this.myCleanDataEntity, date)
-            break
-          }
           default: {
             console.log('should never be here')
             break
@@ -977,22 +861,46 @@ export default {
       // to interact with point primitive on click
       var _this = this
       this._myViewer.screenSpaceEventHandler.setInputAction(function onLeftClick (movement) {
+        // debugger
         // _this.myRawDataPrimitive._pointPrimitives.find(function(item) {  return item.id == selectPoint.id } )
         var selectPoint = viewer.scene.pick(movement.position)
-        var selectCollection = selectPoint.collection // To know in which collection we are
-        var PointColorRgba = selectPoint.primitive._color.toRgba() // to know the point's color
-        for (var item in _this.myConfigCollection) {
-          if (selectCollection === _this.myConfigCollection[item].references) { // to find matching collection
-            if (PointColorRgba === _this.myConfigCollection[item].defaultColor) { // to know in what color is the point and give him the other one
-              selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].clickedColor)
-              _this.mySelectedPoints.push(selectPoint)
-            } else {
-              selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].defaultColor)
-              _this.findAndRemovePointSelected(selectPoint) // when point is clicked on a second time , give back default color and delete from selected point list
+        if (selectPoint !== undefined) {
+          var selectCollection = selectPoint.collection // To know in which collection we are
+          var PointColorRgba = selectPoint.primitive._color.toRgba() // to know the point's color
+          for (var item in _this.myConfigCollection) {
+            if (selectCollection === _this.myConfigCollection[item].references) { // to find matching collection
+              if (PointColorRgba === _this.myConfigCollection[item].defaultColor) { // to know in what color is the point and give him the other one
+                // to write selected points id in span
+                if (_this.myConfigCollection[item].references === _this.myfilteredDataPrimitive) {
+                  _this.pointsToRemoveFd.push(Number(selectPoint.id))
+                } else if (_this.myConfigCollection[item].references === _this.myEliminatedDataPrimitive){
+                  _this.pointsToRemoveEd.push(Number(selectPoint.id))
+                }
+                selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].clickedColor)
+                _this.mySelectedPoints.push(selectPoint)
+              } else {
+                // To remove id from liste span selected
+                if (_this.myConfigCollection[item].references === _this.myfilteredDataPrimitive) {
+                  for (var i=0; i < _this.pointsToRemoveFd.length; i++) {
+                    if (Number(selectPoint.id) === _this.pointsToRemoveFd[i] ) {
+                      _this.pointsToRemoveFd.splice(i,1)
+                    }
+                  }
+                } else if (_this.myConfigCollection[item].references === _this.myEliminatedDataPrimitive) {
+                  for (var i=0; i <= _this.pointsToRemoveEd.length; i++) {
+                    if (Number(selectPoint.id) === _this.pointsToRemoveEd[i] ) {
+                      _this.pointsToRemoveEd.splice(i,1)
+                    }
+                  }
+                }
+                // to undo changes so the point won't be removed
+                selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].defaultColor)
+                _this.findAndRemovePointSelected(selectPoint) // when point is clicked on a second time , give back default color and delete from selected point list
+              }
             }
           }
+          console.log(selectPoint.id)
         }
-        console.log(selectPoint.id)
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
       // key linked to cesium ion account
       Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJmZTcyOGI0MC1lYzIzLTQwMmQtYTIyNC0zYzUzODc1MDY3YjkiLCJpZCI6MTA0NTUsInNjb3BlcyI6WyJhc2wiLCJhc3IiLCJhc3ciLCJnYyJdLCJpYXQiOjE1NTg1MTU4MDd9.3gdYw0YfxkUkxTAre3lLXCvQsv6rKvW4yBiy27MFGlg'
@@ -1087,6 +995,12 @@ export default {
           )
           this.myEliminatedDataPrimitive.remove(this.mySelectedPoints[point].primitive)
           this.myEliminatedDataEntity.entities.remove(pointEntity)
+          for(var i=0; i<this.dataReceived[0].length; i++) {
+            if (this.dataReceived[0][i].id === this.mySelectedPoints[point].primitive._id) {
+              this.dataReceived[0][i].status='validated by hand'
+            }
+          }
+          //this.dataReceived[0][id].status='validated by hand' // pas bon, deuxième indice renvoie à index et non à id.. du coup décalage
         } else {
           this.myEliminatedDataEntity.entities.add(
             {
@@ -1124,10 +1038,18 @@ export default {
           )
           this.myfilteredDataPrimitive.remove(this.mySelectedPoints[point].primitive)
           this.myfilteredDataEntity.entities.remove(pointEntity)
+          for(var i=0; i<this.dataReceived[0].length; i++) {
+            if (this.dataReceived[0][i].id === this.mySelectedPoints[point].primitive._id) {
+              this.dataReceived[0][i].status='removed by hand'
+            }
+          }
+          // this.dataReceived[0][id].status='removed by hand' // pas bon, deuxième indice renvoie à index et non à id.. du coup décalage
         }
       }
       // _this.myRawDataPrimitive._pointPrimitives.find(function(item) {  return item.id == selectPoint.id } )
       this.mySelectedPoints = []
+      this.pointsToRemoveFd = []
+      this.pointsToRemoveEd = []
     },
     // remove_point () {
     //   // var SelectedPoint = this._myViewer.selectedEntity
@@ -1159,101 +1081,57 @@ export default {
     },
     // to clean everything before importing new data
     cleanCollection () {
-      // console.log('update du front')
-      if (this.myRawDataPrimitive || this.myPrefilteredDataPrimitive || this.myEliminatedDataPrimitive || this.myfilteredDataPrimitive) {
-        if (confirm('You are going to loose current data, do you still want to proceed ?')) {
-          // to destroy the collection and erase points from viewer
-          this.myRawDataPrimitive.destroy()
-          this.myPrefilteredDataPrimitive.destroy()
-          this.myEliminatedDataPrimitive.destroy()
-          this.myfilteredDataPrimitive.destroy()
-          this.myDetected_immoPrimitive.destroy()
-          this.myCleanDataPrimitive.destroy()
-          this.myRawDataEntity.entities.removeAll()
-          this.myPrefilteredDataEntity.entities.removeAll()
-          this.myEliminatedDataEntity.entities.removeAll()
-          this.myfilteredDataEntity.entities.removeAll()
-          this.myCleanDataEntity.entities.removeAll()
-          this._myViewer.entities.removeAll()
-          // to uncheck checkboxes
-          var allcheckbox = document.querySelectorAll('div#primitive input')
-          for (var i = 0; i < allcheckbox.length; i++) {
-            allcheckbox[i].checked = false
-          }
-          var allcheckboxentities = document.querySelectorAll('div#player input')
-          for (var j = 0; j < allcheckboxentities.length; j++) {
-            allcheckboxentities[j].checked = false
-          }
-          this.customDestroyTimeline()
-          // document.getElementById('rd').checked = false
-          // document.getElementById('pfd').checked = false
-          // document.getElementById('ed').checked = false
-          // document.getElementById('fd').checked = false
+      if (this.myRawDataPrimitive.length > 0) {
+        // if (confirm('You are going to loose current data, do you still want to proceed ?')) {
+        // to destroy the collection and erase points from viewer
+        this.myRawDataPrimitive.destroy()
+        this.myImpossibleDataPrimitive.destroy()
+        this.myPrefilteredDataPrimitive.destroy()
+        this.myEliminatedDataPrimitive.destroy()
+        this.myfilteredDataPrimitive.destroy()
+        this.myDetected_immoPrimitive.destroy()
+        this.myRawDataEntity.entities.removeAll()
+        this.myPrefilteredDataEntity.entities.removeAll()
+        this.myEliminatedDataEntity.entities.removeAll()
+        this.myfilteredDataEntity.entities.removeAll()
+        this._myViewer.entities.removeAll()
+        // to uncheck checkboxes and empty checkboxes and radio selected
+        this.selected = []
+        this.picked = ''
+        this.customDestroyTimeline()
+        this.displayCheckbox = false
+        // }
+      }
+    },
+    instanciateCollection(data) {
+          // To add data to points collections
+      for (var itr in data[0]) {
+        this.myRawDataPrimitive.add(this.createPointPrimitive(data[0][itr], this.myConfigCollection.myRawData.defaultColor, this.myConfigCollection.myRawData.outlineColor))
+        this.myRawDataEntity.entities.add(this.createPointEntity(data[0][itr], this.myConfigCollection.myRawData.defaultColor, this.myConfigCollection.myRawData.outlineColor))
+      }
+      for (var itp in data[1]) {
+        this.myPrefilteredDataPrimitive.add(this.createPointPrimitive(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, this.myConfigCollection.myPrefilteredData.outlineColor))
+        this.myPrefilteredDataEntity.entities.add(this.createPointEntity(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, this.myConfigCollection.myPrefilteredData.outlineColor))
+      }
+      for (var ite in data[2]) {
+        this.myImpossibleDataPrimitive.add(this.createPointPrimitive(data[2][ite], this.myConfigCollection.myImpossibleData.defaultColor, this.myConfigCollection.myImpossibleData.outlineColor))
+      }
+      for (var itf in data[3]) {
+        this.myEliminatedDataPrimitive.add(this.createPointPrimitive(data[3][itf], this.myConfigCollection.myEliminatedData.defaultColor, this.myConfigCollection.myEliminatedData.outlineColor)) // to create points
+        this.myEliminatedDataEntity.entities.add(this.createPointEntity(data[3][itf], this.myConfigCollection.myEliminatedData.defaultColor, this.myConfigCollection.myEliminatedData.outlineColor))
+      }
+      for (var itf in data[4]) {
+        this.myfilteredDataPrimitive.add(this.createPointPrimitive(data[4][itf], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor)) // to create points
+        this.myfilteredDataEntity.entities.add(this.createPointEntity(data[4][itf], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor))
+      }
+      if (data[5].length > 0) {
+        console.log('immobility detected')
+        // this.immobility = true
+        for (var iti in data[5]) {
+          this.myDetected_immoPrimitive.add(this.createPointPrimitive(data[5][iti], this.myConfigCollection.myImmobilityData.defaultColor, this.myConfigCollection.myImmobilityData.outlineColor))
         }
       }
     },
-    updateElevationPrimitive (collection) {
-      // Construct the default list of terrain sources.
-      var terrainModels = this._myCesium.createDefaultTerrainProviderViewModels()
-
-      // Construct the viewer, with a high-res terrain source pre-selected.
-      var viewer = new this._myCesium.Viewer('cesiumContainer', {
-        terrainProviderViewModels: terrainModels,
-        selectedTerrainProviderViewModel: terrainModels[1]  // Select STK High-res terrain
-      })
-
-      // Get a reference to the ellipsoid, with terrain on it.  (This API may change soon)
-      // var ellipsoid = viewer.scene.globe.ellipsoid
-      // var terrainProvider = this._myCesium.createWorldTerrain()
-      // // Specify our point of interest.
-      // for (var i = 0; i < 1; i++) {
-      //   // var pointOfInterest = this._myCesium.Cartographic.fromDegrees( 6.779090, 45.227860, 1240)
-      //   var pointOfInterest= [
-      //     this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(collection._pointPrimitives[i]._position.x, collection._pointPrimitives[i]._position.y)
-      //   ]
-      //   console.log('point avant', pointOfInterest)
-      //   var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, pointOfInterest)
-      //   this._myCesium.when(promise, function(updatedPositions) {
-      //     //ok
-      //   })
-      //   console.log('point updated', pointOfInterest)
-        // [OPTIONAL] Fly the camera there, to see if we got the right point.
-        // viewer.camera.flyTo({
-        //   destination: ellipsoid.cartographicToCartesian(pointOfInterest)
-        // })
-        // Sample the terrain (async) and write the answer to the console.
-        // this._myCesium.sampleTerrain(viewer.terrainProvider, 9, [ pointOfInterest ])
-        // this.height = null
-        // .then(function(samples) {
-        //   // this.height=samples[0].height
-        //   console.log('Height in meters is: ' + samples[0].height)
-        //   // console.log('Height in is: ' + this.height)
-        //   // console.log('Height point 1 avant: ' + collection._pointPrimitives[i]._position.z)
-        //   // var newHeight = this._myCesium.Cartographic.toCartesian(samples[0].height, ellipsoid)
-        //   // console.log('newpos', newHeight)
-        //   // collection._pointPrimitives[i]._position.z = newHeight
-        //   // console.log('Height point 1 apres: ' + collection._pointPrimitives[i]._position.z)
-        // })
-        // console.log('Height out is: ' + this.height)
-      // }
-        // collection._pointPrimitives[i]._position.z = samples[0].height
-      // debugger
-      // var terrainProvider = this._myViewer.terrainProvider
-      // for (var i = 0; i < collection.length; i++) {
-      //   var position = this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(collection._pointPrimitives[i]._position)
-      //   console.log('position carto', position)
-      //   var height = this._myViewer.scene.sampleHeight(terrainProvider, position)
-      //   console.log('height', height)
-        // var position = [
-        //
-        // ]
-        // // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
-        // var promise = this._myCesium.sampleTerrain(terrainProvider, 2, position)
-        // this._myCesium.when(promise, function (updatedPositions) {
-        //   console.log('elevation', position[0].height)
-        //   // collection._pointPrimitives[i]._position.z = position[0].height
-        // })
-    }
   },
   // Create collections and config object
   mounted () {
@@ -1261,7 +1139,7 @@ export default {
     // MODIFIER AVEC THIS.EMIT DANS ImportData ET EVENT LISTENER DANS APP avec fonction https://www.telerik.com/blogs/how-to-emit-data-in-vue-beyond-the-vuejs-documentation
     _this.$root.$on('eventing', data => {
       // Creating Collections of points
-      this.displayCheckbox = true
+      _this.dataReceived = data
       _this.myRawDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my raw data') // new _this._myCesium.CustomDataSource('my raw data')
       _this.myRawDataEntity = new _this._myCesium.CustomDataSource()
       _this.myImpossibleDataPrimitive = new _this._myCesium.PointPrimitiveCollection()
@@ -1272,85 +1150,82 @@ export default {
       _this.myfilteredDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my filtered data')
       _this.myfilteredDataEntity = new _this._myCesium.CustomDataSource()
       _this.myDetected_immoPrimitive = new _this._myCesium.PointPrimitiveCollection()
-      _this.myCleanDataPrimitive = new _this._myCesium.PointPrimitiveCollection()
-      _this.myCleanDataEntity = new _this._myCesium.CustomDataSource()
       _this.myConfigCollection = {
         'myRawData': {
-          defaultColor: 4294901760,
+          defaultColor: 4294901760, // blue
           clickedColor: 4294901760,
           // clickedColor: 4278190335,//red
           outlineColor: 4294967295,
           references: _this.myRawDataPrimitive
         },
         'myImpossibleData': {
-          defaultColor: 4278190080,
+          defaultColor: 4278190080, // black
           clickedColor: 4278190080,
           outlineColor: 4294967295,
           // clickedOutlineColor: 4278255615,
           references: _this.myImpossibleDataPrimitive
         },
         'myPrefilteredData': {
-          defaultColor: 4286611584,
-          clickedColor: 4286611584,
+          defaultColor: 4278232575, // orange
+          clickedColor: 4278232575,
           outlineColor: 4294967295,
           references: _this.myPrefilteredDataPrimitive
         },
         'myEliminatedData': {
-          defaultColor: 4278190335,
-          clickedColor: 4294967295,
-          outlineColor: 4294967295,
+          defaultColor: 4278190335, // red
+          clickedColor: 4294967295, // white
+          outlineColor: 4278190080,
           references: _this.myEliminatedDataPrimitive
         },
         'myfilteredData': {
-          defaultColor: 4278222848,
-          clickedColor: 4278190335,
+          defaultColor: 4278222848, // green
+          clickedColor: 4278190335, // red
           outlineColor: 4294967295,
           references: _this.myfilteredDataPrimitive
         },
-        'myImmobilityData': { //à modifier
-          defaultColor: 4278222848,
-          clickedColor: 4278190335,
+        'myImmobilityData': { //  à modifier
+          defaultColor: 4286611584,// grey
+          clickedColor: 4286611584,
           outlineColor: 4294967295,
-          references: _this.myfilteredDataPrimitive
-        },
-        'myCleanData': { //à modifier
-          defaultColor: 4278222848,
-          clickedColor: 4278190335,
-          outlineColor: 4294967295,
-          references: _this.myfilteredDataPrimitive
+          references: null,
+          references: _this.myDetected_immoPrimitive
         }
       }
-      // To add data to points collections
-      for (var itr in data[0]) {
-        _this.myRawDataPrimitive.add(_this.createPointPrimitive(data[0][itr], _this.myConfigCollection.myRawData.defaultColor, _this.myConfigCollection.myRawData.outlineColor))
-        _this.myRawDataEntity.entities.add(_this.createPointEntity(data[0][itr], _this.myConfigCollection.myRawData.defaultColor, _this.myConfigCollection.myRawData.outlineColor))
-      }
-      _this.updateElevationPrimitive(_this.myRawDataPrimitive)
-      // _this.updateElevationEntity(_this.myRawDataEntity)
-      for (var itp in data[1]) {
-        _this.myPrefilteredDataPrimitive.add(_this.createPointPrimitive(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, _this.myConfigCollection.myPrefilteredData.outlineColor))
-        _this.myPrefilteredDataEntity.entities.add(_this.createPointEntity(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, _this.myConfigCollection.myPrefilteredData.outlineColor))
-      }
-      for (var ite in data[2]) {
-        _this.myImpossibleDataPrimitive.add(_this.createPointPrimitive(data[2][ite], this.myConfigCollection.myImpossibleData.defaultColor, _this.myConfigCollection.myImpossibleData.outlineColor))
-      }
-      for (var itf in data[3]) {
-        _this.myfilteredDataPrimitive.add(_this.createPointPrimitive(data[3][itf], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor)) // to create points
-        _this.myfilteredDataEntity.entities.add(_this.createPointEntity(data[3][itf], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor))
-      }
-      if (data[4].length > 0) {
-        console.log('une immobilité a été détectée')
-        this.immobility = true
-        for (var iti in data[4]) {
-          _this.Detected_immoPrimitive.add(_this.createPointPrimitive(data[4][iti], this._myCesium.Color.WHITE, this._myCesium.Color.RED))
+      var terrainProvider = _this._myViewer.terrainProvider
+      if (data[6]===1) {
+        alert('The date entered is not in the dataset')
+        this.loading = false
+        this.$root.$emit('NoUpdate', this.loading)
+      } else {
+        if (data[4].length !== 0) {
+          var position = data[4].map(function(item) { 
+            return _this._myCesium.Cartographic.fromDegrees( Number(item.LON), Number(item.LAT),  Number(item.elevation) ) 
+          })
+          // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
+          var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
+          this._myCesium.when(promise, function (updatedPositions) {
+            for ( var i =0; i < updatedPositions.length; i++) {
+              if (updatedPositions[i].height > _this.dataReceived[4][i].elevation) {
+                _this.dataReceived[4][i].elevation = updatedPositions[i].height
+              } 
+              if (data[6] === 'Terrestrian' || data[6] === 'Aquatic') {
+                _this.dataReceived[4][i].elevation = updatedPositions[i].height
+              }
+            }
+            _this.instanciateCollection(_this.dataReceived)
+            console.log('elevation', position[0].height)
+            _this.displayCheckbox = true
+            var csv = false
+            _this.$root.$emit('AbleButton', csv)
+          })
+        } else {
+          this.displayCheckbox = true
         }
-        for (var itc in data[5]) { //modif couleurs
-          _this.myCleanDataPrimitive.add(_this.createPointPrimitive(data[5][itc], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor)) // to create points
-          _this.myCleanDataEntity.entities.add(_this.createPointEntity(data[5][itc], this.myConfigCollection.myfilteredData.defaultColor, _this.myConfigCollection.myfilteredData.outlineColor))
-      }
       }
     })
   },
+
+
   // NOT USED
   MakeListSameColor (collection, list, color) {
     for (var i = 0; i < collection.length; i++) {
@@ -1364,16 +1239,207 @@ export default {
 </script>
 
 <style>
+@font-face {
+ font-family: 'Exo';
+ src: url("~@/assets/font/Exo2-Medium.ttf") format("ttf");
+}
 .viewer {
   width: 100%;
-  height: 800px;
 }
 #app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
+  font-family: 'Exo', 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
+  position: relative;
+  height: calc(100vh - 88px);
+  margin-top: 88px;
+  font-size: 15px;
+}
+.col-4{
+  padding-left: 30px;
+  padding-right: 20px;
+}
+#parameters{
+  margin-top: 30px;
+}
+div h2{
+  background: #6eb0ed;
+  color: #fff;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 10px;
+  font-size: 1.1rem;
+  position: relative;
+}
+div#technology h2:hover{
+  cursor: pointer;
+}
+div#technology h2.collapsed:after{
+  content: ' ';
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 7px 5.5px 0 5.5px;
+  border-color: #fff transparent transparent transparent;
+  position: absolute;
+  right: 10px;
+  top: 18px;
+  transition: all 0.2s ease-in-out;
+}
+div#technology h2:not(.collapsed):after{
+  content: ' ';
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 7px 5.5px 0 5.5px;
+  border-color: #fff transparent transparent transparent;
+  position: absolute;
+  right: 10px;
+  top: 18px;
+  transition: all 0.2s ease-in-out;
+  transform: rotate(180deg);
+}
+form div{
+  display: inline-flex;
+  width: 100%;
+  margin-bottom: 15px;
+}
+form div label {
+  width: 29%;
+  text-align: left;
+  line-height: 19px;
+  margin-bottom: 0px;
+}
+form div select, form div input{
+  width: 65%;
+  border-radius: 0px !important;
+}
+form div:last-of-type label{
+  margin-right: 0;
+}
+form div:last-of-type{
+  justify-content: space-between;
+}
+form div:last-of-type label{
+  width: 20%;
+}
+form div:last-of-type input{
+  width: 27%;
+}
+/* FICHIER */
+.fields{
+  position: relative;
+  margin: 20px 0px;
+}
+.fields input{
+  width: 100%;
+}
+.fields input:focus{
+  outline: none !important;
+  border: none !important;
+}
+.fields button{
+  width: 128px !important;
+  font-size: 12px;
+  position: absolute;
+  padding: 5px 4px;
+}
+.fields button label{
+  margin-bottom: 0px;
+}
+.fields button label:hover{
+  cursor: pointer;
+}
+button:disabled{
+  opacity: 0.6;
+}
+/* IMPORT */
+#import{
+  margin-bottom: 20px;
+}
+#import textarea{
+  display: none;
+}
+/* #import button{
+  margin-bottom: 10px;
+} */
+button{
+  background: #1b568c;
+  color: #fff;
+  text-transform: uppercase;
+  border: none;
+  font-size: 1em;
+  padding: 5px;
+  width: 100%;
+  -webkit-box-shadow: 0px 10px 9px -10px rgba(0,0,0,0.50);
+  -moz-box-shadow: 0px 10px 9px -10px rgba(0,0,0,0.50);
+  box-shadow: 0px 10px 9px -10px rgba(0,0,0,0.50);
+}
+/* CHECKBOXES */
+#checkbox-group-1{
+  display: inline-flex;
+  flex-wrap: wrap;
+}
+.custom-control.custom-control-inline.custom-checkbox {
+  width: 29%;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+/* PLAYER */
+#player{
+  border-top: solid 1px #6eb0ed;
+  border-bottom: solid 1px #6eb0ed;
+  padding-top: 10px;
+  margin-bottom: 15px;
+}
+#player fieldset{
+  margin-bottom: 0px;
+}
+#player fieldset div:first-of-type{
+  display: inline-flex;
+  flex-wrap: wrap;
+  width: 100%;
+}
+#player fieldset legend{
+  text-align: left;
+  font-weight: bold;
+  font-size: 1em;
+}
+#player fieldset div:first-of-type .custom-control.custom-control-inline.custom-radio{
+  width: 29%;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+/* EXPORT */
+#export{
+  text-align: left;
+}
+#export button{
+  font-size: 14px;
+  width: fit-content;
+  padding: 5px 15px;
+}
+/* TRANSPARENCE */
+#globeOptions{
+  width: fit-content;
+  position: absolute;
+  bottom: 0;
+  left: 30%;
+  transform: translateX(45%);
+  display: inline-flex;
+}
+#globeOptions label{
+  margin-bottom: 5px;
+}
+/* MAP */
+#cesiumContainer{
+  width: 66% !important;
+  height: calc(100% - 120px) !important;
+  position: fixed;
+  top: 88px;
+  bottom: 0;
+  right: 0;
 }
 </style>
