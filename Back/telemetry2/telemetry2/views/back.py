@@ -26,25 +26,31 @@ def init_upload(request):
     speciesType = parameters['speciesType']
     maxSpeed = float(parameters['speed'])
     immo_time = float(parameters['immoTime'])
+    deploymentDate = parameters['deploymentDate']
     objFile = request.POST.get('file') # gets csv file uploaded from Front app
     WantedData=['event-id','timestamp','location-lat','location-long'] # à demander en paramètres d'entrée
     rawPointsDf = DataFrameManagement(objFile,WantedData) # function to have a df with expected data
+    rawPointsDf.insert(len(rawPointsDf.columns),'status','')
     trustedPointsdf,impossiblePointsdf=prefilterData(rawPointsDf)
+    # To annotate points
+    impossiblePointsdf['status'] = 'impossible'
+    rawPointsDf.loc[rawPointsDf.id.isin(impossiblePointsdf.id), ['status']] = impossiblePointsdf[['status']].values
     candidateDf = rawPointsDf.loc[(~rawPointsDf['id'].isin(impossiblePointsdf.id))]
     duplicatesToDelete = findDuplicates(candidateDf)
+    if duplicatesToDelete is not None:
+        rawPointsDf.loc[rawPointsDf.id.isin(duplicatesToDelete.id), ['status']] = duplicatesToDelete[['status']].values
     workingDf = pd.concat([candidateDf, duplicatesToDelete]).drop_duplicates(keep=False)
-    workingDf.insert(len(workingDf.columns),'status','pending')
+    # workingDf.insert(len(workingDf.columns),'status','pending')
     points_prefiltered = dfToListDict(workingDf)
-    # points_filtered1=Distance_algo(points_prefiltered,1000,1000) # seuils à modifier
-    # points_filtered2=Speed_algo(points_filtered1,100,maxSpeed) # seuils à modifier
-    rawPoints, eliminatedSpeed,points_filtered =Speed_algo(points_prefiltered,maxSpeed) # voir quoi faire avec rawPoints
+    rawPointsAnnotated = dfToListDict(rawPointsDf)
+    rawPointsAnnotated, eliminatedSpeed,points_filtered1 =Speed_algo(rawPointsAnnotated,points_prefiltered,maxSpeed,deploymentDate) # voir quoi faire avec rawPoints
     if technology == 'argos':
         Argoserror = ArgosError()
-        detected_immo,points_filtered = Immobility_algo(points_filtered,Argoserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
+        rawPointsAnnotated,detected_immo,points_filtered2 = Immobility_algo(rawPointsAnnotated,points_filtered1,Argoserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
     if technology == 'gps':
         Gpserror = GpsError()
-        detected_immo,points_filtered = Immobility_algo(points_filtered,Gpserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
-    return dfToListDict(rawPointsDf),points_prefiltered,dfToListDict(impossiblePointsdf), eliminatedSpeed, points_filtered, detected_immo, speciesType
+        rawPointsAnnotated,detected_immo,points_filtered2 = Immobility_algo(rawPointsAnnotated,points_filtered1,Gpserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
+    return rawPointsAnnotated,points_prefiltered,dfToListDict(impossiblePointsdf), eliminatedSpeed, points_filtered2, detected_immo, speciesType
     
 
 def DataFrameManagement(objFile,WantedData):
@@ -71,6 +77,7 @@ def init_back(request):
     speciesType = parameters['speciesType']
     maxSpeed = float(parameters['speed'])
     immo_time = float(parameters['immoTime'])
+    deploymentDate = parameters['deploymentDate']
     if "geometry" in request.POST:
         geometry = request.POST.get('geometry')
         pb=[]
@@ -78,31 +85,39 @@ def init_back(request):
         points_distinct,pb=parsingRequest(geometry,pb)
         # ordered by date
         rawPointsDf=orderByDate(points_distinct)
+        rawPointsDf.insert(len(rawPointsDf.columns),'status','')
         #step2 prefiltre
         trustedPointsdf,impossiblePointsdf=prefilterData(rawPointsDf)
+        # To annotate points
+        impossiblePointsdf['status'] = 'impossible'
+        rawPointsDf.loc[rawPointsDf.id.isin(impossiblePointsdf.id), ['status']] = impossiblePointsdf[['status']].values
         #step3 estimation
         if len(pb)==0:
             candidateDf = rawPointsDf.loc[(~rawPointsDf['id'].isin(impossiblePointsdf.id))]
             # to delete duplicates
             duplicatesToDelete = findDuplicates(candidateDf)
+            # To annotate points
+            if duplicatesToDelete is not None:
+                duplicatesToDelete['status'] = 'duplicate'
+                rawPointsDf.loc[rawPointsDf.id.isin(duplicatesToDelete.id), ['status']] = duplicatesToDelete[['status']].values
             workingDf = pd.concat([candidateDf, duplicatesToDelete]).drop_duplicates(keep=False)
             # points_prefiltered=annotatedResult(rawPointsDf,impossiblePointsdf,trustedPointsdf,workingDf)
             # to delete points very far from other data
-            workingDf.insert(len(workingDf.columns),'status','pending')
+            # workingDf['status']='pending' # à voir si on garde ce statut
             points_prefiltered = dfToListDict(workingDf)
             # points_prefiltered = workingDf.to_dict('Index').values()
             # points_filtered1=Distance_algo(points_prefiltered,2,10)
             # pointsDistance = Distance_algo(points_prefiltered)
             # Add speed info 
-            # points_filtered=Speed_algo(pointsDistance,2,maxSpeed)
-            rawPoints, eliminatedSpeed,points_filtered =Speed_algo(points_prefiltered,maxSpeed) # voir quoi faire avec rawPoints
+            rawPointsAnnotated = dfToListDict(rawPointsDf)
+            rawPointsAnnotated, eliminatedSpeed,points_filtered =Speed_algo(rawPointsAnnotated,points_prefiltered,maxSpeed,deploymentDate) # voir quoi faire avec rawPoints
             if technology == 'argos' :
                 Argoserror = ArgosError()
-                detected_immo,points_filtered = Immobility_algo(points_filtered,Argoserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
+                rawPointsAnnotated,detected_immo,points_filtered = Immobility_algo(rawPointsAnnotated,points_filtered,Argoserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
             if technology == 'gps' :
                 Gpserror = GpsError()
-                detected_immo,points_filtered = Immobility_algo(points_filtered,Gpserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
-            return dfToListDict(rawPointsDf),points_prefiltered,dfToListDict(impossiblePointsdf), eliminatedSpeed, points_filtered, detected_immo, speciesType # ,duplicates 
+                rawPointsAnnotated,detected_immo,points_filtered = Immobility_algo(rawPointsAnnotated,points_filtered,Gpserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
+            return rawPointsAnnotated,points_prefiltered,dfToListDict(impossiblePointsdf), eliminatedSpeed, points_filtered, detected_immo, speciesType # ,duplicates 
         else :
             return 'souci'
     else:
@@ -142,7 +157,7 @@ def parsingRequest(options,pb):
    
 def orderByDate(data):
     pFrame = pd.DataFrame(data)
-    pFrame['date'] = pd.to_datetime(pFrame["date"]).dt.strftime('%Y-%m-%dT%H:%m:%S')
+    pFrame['date'] = pd.to_datetime(pFrame["date"]).dt.strftime('%Y-%m-%dT%H:%M:%S')
     pFrame = pFrame.sort_values(by='date',ascending=True)
     pFrame = pFrame.replace({'':np.NAN})
     return pFrame 
@@ -306,12 +321,26 @@ def findDuplicates(candidateDf):
 
 # Algo usable if 1st point correct. If movement to the next location (from i to i+1) requires implausible speed, i+1 is marked outlier and i is tested with the next one
 # until a plausible location is found
-def Speed_algo(points,MaxSpeed):
-    L=len(points)
+def Speed_algo(rawPointsAnnotated,points,MaxSpeed,deploymentDatestr):
     eliminatedSpeed =[]
-    points[0]['distance1'] = 0
-    points[0]['speed'] = 0
-    i=0
+    deploymentDateobj = datetime.datetime.strptime(deploymentDatestr, '%Y-%m-%dT%H:%M')
+    deploymentDateobj = deploymentDateobj.isoformat()
+    L=len(points)
+    start = 0
+    # To start speed calculation from release event
+    if points[0]['date'] < deploymentDateobj:
+        for d in range (L):
+            if points[d]['date'] >= deploymentDateobj:
+                start = d
+                break 
+            else:
+                eliminatedSpeed.append(points[d]) 
+                points[d]['distance1'] = 0
+                points[d]['speed'] = 0   
+    # Pas possible de donner date sup à dernère date jeu de données! Faire une alerte ?
+    points[start]['distance1'] = 0
+    points[start]['speed'] = 0
+    i=start
     while i < L-1:
         for j in range (1,L-i):
             points[i+j]['distance1'] = vincenty((float(points[i]['LAT']),float(points[i]['LON'])),(float(points[i+j]['LAT']),float(points[i+j]['LON'])))
@@ -321,12 +350,12 @@ def Speed_algo(points,MaxSpeed):
             points[i+j]['speed'] = speed
             if speed > MaxSpeed:
                 eliminatedSpeed.append(points[i+j])
-                points[i+j]['SpeedOutlier']='yes' # annotation collection totale
+                rawPointsAnnotated[i+j]['status']= 'speed outlier'
             else:
                 i=i+j
                 break 
     pointsfiltered = [x for x in points if x not in eliminatedSpeed]             
-    return points, eliminatedSpeed, pointsfiltered # renvoi 1/la collection avec tous les points mais annotés, 2/les points éliminés par vitesse et 3/ 1-2
+    return rawPointsAnnotated, eliminatedSpeed, pointsfiltered # renvoi 1/la collection avec tous les points mais annotés, 2/les points éliminés par vitesse et 3/ 1-2
     
 
 
@@ -358,7 +387,7 @@ def GpsError():
     error = 50 # voir quoi mettre, maxerror, average error..
     return error 
 
-def Immobility_algo(points,immo_range, immo_time): # trouver le barycentre de points, trouver le point le plus distant de ce barycentre -> rayon du cercle : tant que le rayon
+def Immobility_algo(rawPointsAnnotated,points,immo_range, immo_time): # trouver le barycentre de points, trouver le point le plus distant de ce barycentre -> rayon du cercle : tant que le rayon
     pointsAlive = []
     detected_immo = []
     L=len(points)
@@ -382,10 +411,13 @@ def Immobility_algo(points,immo_range, immo_time): # trouver le barycentre de po
     if diftimeH >= immo_time:
         print('Immobility detected from',points[L-K]['date'])
         pointsAlive = [x for x in points if x not in detected_immo]
+        for i in range (len(rawPointsAnnotated)):
+            if rawPointsAnnotated[i]['date']>= points[L-K]['date']:
+                rawPointsAnnotated[i]['status']='immobility'
     else:
         detected_immo = []
         pointsAlive = points
         print("Aucune immobilité n'a été détectée")
-    return detected_immo, pointsAlive #voir pour renvoyer une 3ème collection annotées
+    return rawPointsAnnotated,detected_immo, pointsAlive #voir pour renvoyer une 3ème collection annotées
 
 
