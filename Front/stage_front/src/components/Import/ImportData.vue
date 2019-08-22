@@ -2620,7 +2620,8 @@ export default {
     return {
       file: '',
       message: '',
-      parameters: null
+      parameters: null,
+      loading: false
     }
   },
   created () {
@@ -2641,6 +2642,7 @@ export default {
       if (this.parameters === null) {
         alert('First enter parameters corresponding to your dataset')
       } else {
+        this.$emit('loading', true)
         var speciesfromtextarea = document.getElementById('byhand').value
         var parametersToSend = JSON.stringify(this.parameters)
         if (typeof (this.file) === 'object') {

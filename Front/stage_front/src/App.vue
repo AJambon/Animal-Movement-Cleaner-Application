@@ -2,62 +2,49 @@
   <div id="app">
     <visualization></visualization>
     <Parameters></Parameters>
-    <ImportData @UpdateData='cleanCollection'></ImportData>
-    
+    <ImportData @UpdateData='cleanCollection' @loading ='spinnerOn'></ImportData>
+    <Export @downloadcsv='ManageData'></Export>
     <div class="viewer col-4" ref="myViewer">
       <!-- <div id="immo" v-if="immobility">
         <b-alert>An immobility has been detected</b-alert>
       </div> -->
       <div id="interact_data" class="demo-tool">
-        <div id='primitive' v-if="displayCheckbox">
-          <h2>Choose the collection to display</h2>
-            <b-form-checkbox-group
-              id="checkbox-group-1"
-              v-model="selected"
-              :options="optionscheckbox"
-              name="flavour-1"
-              @change="onCheckboxCollectionChange($event)"
-            ></b-form-checkbox-group>
-            <!-- <input id = "rd" value="rd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="rd">Raw data</label>
-            <input id = "ipd" value="ipd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="ipd">Impossible data</label>
-            <input id = "pfd" value="pfd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="pfd">Prefiltered data</label>
-            <input id = "ed" value="ed" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="ed">Eliminated data</label>
-            <input id = "fd" value="fd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="fd">Filtered data</label>
-            <input id = "id" value="id" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="id">Immobility Data</label>
-            <input id = "cd" value="cd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
-            <label for="cd">Clean data</label> -->
-          </b-form-group>
-          <!-- <button v-on:click="remove_point" >Remove point</button> -->
+        <div v-if="displayCheckbox">
+          <div id='primitive'>
+            <h2>Choose the collection to display</h2>
+            <b-form-group>
+              <b-form-checkbox-group
+                id="checkbox-group-1"
+                v-model="selected"
+                :options="optionscheckbox"
+                name="flavour-1"
+                @change="onCheckboxCollectionChange($event)"
+              ></b-form-checkbox-group>
+              <div>Selected in filtered data: <strong>{{ pointsToRemoveFd }}</strong></div>
+              <div>Selected in eliminated data: <strong>{{ pointsToRemoveEd }}</strong></div>
+            </b-form-group>
+            <button v-on:click="remove_point" >Remove point</button>
+          </div>
+          <div id='player'>
+            <b-form-group label="PLAYER MODE">
+              <b-form-radio-group
+                v-model="picked"
+                :options="optionsRadios"
+                name="radio-inline"
+                @change="collectionToAnimate($event)"
+              ></b-form-radio-group>
+            </b-form-group>
+          </div>
         </div>
-        <div id='player' v-if="displayCheckbox">
-          <b-form-group label="PLAYER MODE">
-            <b-form-radio-group
-              v-model="picked"
-              :options="optionsRadios"
-              name="radio-inline"
-              @change="collectionToAnimate($event)"
-            ></b-form-radio-group>
-            <!-- <input id = "rd" value="rd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-            <label for="rd">Raw data</label>
-            <input id = "pfd" value="pfd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-            <label for="pfd">Prefiltered data</label>
-            <input id = "ed" value="ed" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-            <label for="ed">Eliminated data</label>
-            <input id = "fd" value="fd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-            <label for="fd">Filtered data</label>
-            <input id = "cd" value="cd" type="radio" @change="collectionToAnimate($event)" v-model="picked"/>
-            <label for="cd">Clean data</label> -->
-            <!-- <b-form-radio-group id="btn-radios-1" v-model="picked" :options="entitycoll" buttons name="display_coll" @change="collectionToAnimate($event)"></b-form-radio-group> -->
-          </b-form-group>
+        <div v-else-if='loading'>
+          <div class="d-flex justify-content-center mb-3">
+              <b-spinner label="Loading..."></b-spinner>
+          </div>
         </div>
-        <Export @downloadcsv='ManageData'></Export>
-        
+        <div id='globeOptions'>
+          <b-form-checkbox id = "3DT" v-model="terrainTransparency" @change="displayTransparency($event)" switch/>
+          <label for="3DT">Terrain transparency</label>
+        </div>
       </div>
     </div>
     <div id='globeOptions'>
@@ -113,6 +100,10 @@ export default {
         roll: 0
       },
       displayCheckbox: false,
+      loading: false,
+      // immobility: false,
+      pointsToRemoveFd: [],
+      pointsToRemoveEd: [],
       mySelectedPoints: [],
       terrainTransparency: false,
       selected: [],
@@ -129,12 +120,24 @@ export default {
         { text: 'Prefiltered data', value: 'pfd' },
         { text: 'Eliminated data', value: 'ed' },
         { text: 'Filtered data', value: 'fd' },
-        { text: 'Immobility data', value: 'id' }
-      ],
-      immobility: false
+        { text: 'Immobility data', value: 'id', disabled: true }
+      ]
     }
   },
   methods: {
+    homeButtonLocation() {
+      if ("geolocation" in navigator) {
+        // check if geolocation is supported/enabled on current browser
+        navigator.geolocation.getCurrentPosition(
+        function success(position) {
+        // for when getting location is a success
+        console.log('latitude', position.coords.latitude, 'longitude', position.coords.longitude)
+        })
+      }
+    },
+    spinnerOn () {
+      this.loading = true
+    },
     // Function that enables to update current time when selected by hand
     onTimelineScrubfunction (e) {
       this._myViewer.clock.currentTime = e.timeJulian
@@ -299,10 +302,6 @@ export default {
             this.CleanMap(this.myDetected_immoPrimitive)
             break
           }
-          case 'cd': {
-            this.CleanMap(this.myCleanDataPrimitive)
-            break
-          }
           default: {
             console.log('should never be here')
             break
@@ -311,8 +310,9 @@ export default {
       }
       console.log('test', event.length)
       if (event.length === 0) {
-        var center = this._myCesium.Cartesian3.fromDegrees(5.369222, 43.292770)
-        this._myViewer.camera.lookAt(center)
+        console.log('rien n est coché')
+        // var center = this._myCesium.Cartesian3.fromDegrees(5.369222, 43.292770)
+        // this._myViewer.camera.lookAt(center)
         // this._myViewer.zoomTo(this._myViewer.entities)
         // this.camera.position.longitude = 5.369222
         // this.camera.position.latitude = 43.292770
@@ -321,33 +321,8 @@ export default {
         for (var val2 of arraySelected) {
           switch (val2) {
             case 'rd': {
-              // var _this = this
-              // var terrainProvider = this._myViewer.terrainProvider
-              // var position = this.myRawDataPrimitive._pointPrimitives.map(function(item) { 
-              //   return _this._myCesium.Ellipsoid.WGS84.cartesianToCartographic(item._position ) 
-              // })
-              // // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
-              // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
-              // this._myCesium.when(promise, function (updatedPositions) {
-              //   for (var i = 0 ; i < updatedPositions.length; i++) {
-                  
-              //   }
-              //   console.log('elevation', position[0].height)
-              // })
               this.addToMap(this.myRawDataPrimitive)
               this.zoomToPrimitive(this.myRawDataPrimitive)
-              // console.log('elevation', elevation)
-              // var _this = this
-              // var positions = 
-              // this.promise = this._myCesium.sampleTerrain(this._myViewer.terrainProvider, 9, positions)
-              // debugger
-              // _this._myCesium.when(_this.promise, function(updatedPositions) {
-              //   console.log("alooorrrrrrrrrssssss")
-              //   debugger
-
-              // })
-              
-
               break
             }
             case 'ipd': {
@@ -371,13 +346,9 @@ export default {
               break
             }
             case 'id': {
+              console.log(this.myDetected_immoPrimitive)
               this.addToMap(this.myDetected_immoPrimitive)
               this.zoomToPrimitive(this.myDetected_immoPrimitive)
-              break
-            }
-            case 'cd': {
-              this.addToMap(this.myCleanDataPrimitive)
-              this.zoomToPrimitive(this.myCleanDataPrimitive)
               break
             }
             default: {
@@ -511,6 +482,7 @@ export default {
           show: true,
           allowPicking: true,
           color: this._myCesium.Color.fromRgba(color),
+          // color: color,
           outlineColor: this._myCesium.Color.fromRgba(outlineColor),
           outlineWidth: 2,
           position: this._myCesium.Cartesian3.fromDegrees(options.LON, options.LAT, options.elevation, this._myCesium.Ellipsoid.WGS84),
@@ -645,7 +617,7 @@ export default {
       this.CleanMap(this.myEliminatedDataPrimitive)
       this.CleanMap(this.myfilteredDataPrimitive)
       this.CleanMap(this.myDetected_immoPrimitive)
-      this.CleanMap(this.myCleanDataPrimitive)
+      // this.CleanMap(this.myCleanDataPrimitive)
       // Uncheck all the checkboxes
       var allcheckbox = document.querySelectorAll('div#primitive input')
       for (var i = 0; i < allcheckbox.length; i++) {
@@ -1017,22 +989,46 @@ export default {
       // to interact with point primitive on click
       var _this = this
       this._myViewer.screenSpaceEventHandler.setInputAction(function onLeftClick (movement) {
+        // debugger
         // _this.myRawDataPrimitive._pointPrimitives.find(function(item) {  return item.id == selectPoint.id } )
         var selectPoint = viewer.scene.pick(movement.position)
-        var selectCollection = selectPoint.collection // To know in which collection we are
-        var PointColorRgba = selectPoint.primitive._color.toRgba() // to know the point's color
-        for (var item in _this.myConfigCollection) {
-          if (selectCollection === _this.myConfigCollection[item].references) { // to find matching collection
-            if (PointColorRgba === _this.myConfigCollection[item].defaultColor) { // to know in what color is the point and give him the other one
-              selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].clickedColor)
-              _this.mySelectedPoints.push(selectPoint)
-            } else {
-              selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].defaultColor)
-              _this.findAndRemovePointSelected(selectPoint) // when point is clicked on a second time , give back default color and delete from selected point list
+        if (selectPoint !== undefined) {
+          var selectCollection = selectPoint.collection // To know in which collection we are
+          var PointColorRgba = selectPoint.primitive._color.toRgba() // to know the point's color
+          for (var item in _this.myConfigCollection) {
+            if (selectCollection === _this.myConfigCollection[item].references) { // to find matching collection
+              if (PointColorRgba === _this.myConfigCollection[item].defaultColor) { // to know in what color is the point and give him the other one
+                // to write selected points id in span
+                if (_this.myConfigCollection[item].defaultColor === 4278222848) {
+                  _this.pointsToRemoveFd.push(Number(selectPoint.id))
+                } else {
+                  _this.pointsToRemoveEd.push(Number(selectPoint.id))
+                }
+                selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].clickedColor)
+                _this.mySelectedPoints.push(selectPoint)
+              } else {
+                // To remove id from liste span selected
+                if (_this.myConfigCollection[item].defaultColor === 4278222848) {
+                  for (var i=0; i < _this.pointsToRemoveFd.length; i++) {
+                    if (Number(selectPoint.id) === _this.pointsToRemoveFd[i] ) {
+                      _this.pointsToRemoveFd.splice(i,1)
+                    }
+                  }
+                } else {
+                  for (var i=0; i <= _this.pointsToRemoveEd.length; i++) {
+                    if (Number(selectPoint.id) === _this.pointsToRemoveEd[i] ) {
+                      _this.pointsToRemoveFd.splice(i,1)
+                    }
+                  }
+                }
+                // to undo changes so the point won't be removed
+                selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].defaultColor)
+                _this.findAndRemovePointSelected(selectPoint) // when point is clicked on a second time , give back default color and delete from selected point list
+              }
             }
           }
+          console.log(selectPoint.id)
         }
-        console.log(selectPoint.id)
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
       // key linked to cesium ion account
       Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJmZTcyOGI0MC1lYzIzLTQwMmQtYTIyNC0zYzUzODc1MDY3YjkiLCJpZCI6MTA0NTUsInNjb3BlcyI6WyJhc2wiLCJhc3IiLCJhc3ciLCJnYyJdLCJpYXQiOjE1NTg1MTU4MDd9.3gdYw0YfxkUkxTAre3lLXCvQsv6rKvW4yBiy27MFGlg'
@@ -1127,6 +1123,12 @@ export default {
           )
           this.myEliminatedDataPrimitive.remove(this.mySelectedPoints[point].primitive)
           this.myEliminatedDataEntity.entities.remove(pointEntity)
+          for(var i=0; i<this.dataReceived[0].length; i++) {
+            if (this.dataReceived[0][i].id === this.mySelectedPoints[point].primitive._id) {
+              this.dataReceived[0][i].status='validated by hand'
+            }
+          }
+          //this.dataReceived[0][id].status='validated by hand' // pas bon, deuxième indice renvoie à index et non à id.. du coup décalage
         } else {
           this.myEliminatedDataEntity.entities.add(
             {
@@ -1164,10 +1166,18 @@ export default {
           )
           this.myfilteredDataPrimitive.remove(this.mySelectedPoints[point].primitive)
           this.myfilteredDataEntity.entities.remove(pointEntity)
+          for(var i=0; i<this.dataReceived[0].length; i++) {
+            if (this.dataReceived[0][i].id === this.mySelectedPoints[point].primitive._id) {
+              this.dataReceived[0][i].status='removed by hand'
+            }
+          }
+          // this.dataReceived[0][id].status='removed by hand' // pas bon, deuxième indice renvoie à index et non à id.. du coup décalage
         }
       }
       // _this.myRawDataPrimitive._pointPrimitives.find(function(item) {  return item.id == selectPoint.id } )
       this.mySelectedPoints = []
+      this.pointsToRemoveFd = []
+      this.pointsToRemoveEd = []
     },
     // remove_point () {
     //   // var SelectedPoint = this._myViewer.selectedEntity
@@ -1199,36 +1209,25 @@ export default {
     },
     // to clean everything before importing new data
     cleanCollection () {
-      // console.log('update du front')
       if (this.myRawDataPrimitive || this.myPrefilteredDataPrimitive || this.myEliminatedDataPrimitive || this.myfilteredDataPrimitive) {
         if (confirm('You are going to loose current data, do you still want to proceed ?')) {
           // to destroy the collection and erase points from viewer
           this.myRawDataPrimitive.destroy()
+          this.myImpossibleDataPrimitive.destroy()
           this.myPrefilteredDataPrimitive.destroy()
           this.myEliminatedDataPrimitive.destroy()
           this.myfilteredDataPrimitive.destroy()
           this.myDetected_immoPrimitive.destroy()
-          this.myCleanDataPrimitive.destroy()
           this.myRawDataEntity.entities.removeAll()
           this.myPrefilteredDataEntity.entities.removeAll()
           this.myEliminatedDataEntity.entities.removeAll()
           this.myfilteredDataEntity.entities.removeAll()
-          this.myCleanDataEntity.entities.removeAll()
           this._myViewer.entities.removeAll()
-          // to uncheck checkboxes
-          var allcheckbox = document.querySelectorAll('div#primitive input')
-          for (var i = 0; i < allcheckbox.length; i++) {
-            allcheckbox[i].checked = false
-          }
-          var allcheckboxentities = document.querySelectorAll('div#player input')
-          for (var j = 0; j < allcheckboxentities.length; j++) {
-            allcheckboxentities[j].checked = false
-          }
+          // to uncheck checkboxes and empty checkboxes and radio selected
+          this.selected = []
+          this.picked = ''
           this.customDestroyTimeline()
-          // document.getElementById('rd').checked = false
-          // document.getElementById('pfd').checked = false
-          // document.getElementById('ed').checked = false
-          // document.getElementById('fd').checked = false
+          this.displayCheckbox = false
         }
       }
     },
@@ -1308,17 +1307,18 @@ export default {
         this.myImpossibleDataPrimitive.add(this.createPointPrimitive(data[2][ite], this.myConfigCollection.myImpossibleData.defaultColor, this.myConfigCollection.myImpossibleData.outlineColor))
       }
       for (var itf in data[3]) {
-        this.myfilteredDataPrimitive.add(this.createPointPrimitive(data[3][itf], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor)) // to create points
-        this.myfilteredDataEntity.entities.add(this.createPointEntity(data[3][itf], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor))
+        this.myEliminatedDataPrimitive.add(this.createPointPrimitive(data[3][itf], this.myConfigCollection.myEliminatedData.defaultColor, this.myConfigCollection.myEliminatedData.outlineColor)) // to create points
+        this.myEliminatedDataEntity.entities.add(this.createPointEntity(data[3][itf], this.myConfigCollection.myEliminatedData.defaultColor, this.myConfigCollection.myEliminatedData.outlineColor))
       }
-      if (data[4].length > 0) {
-        this.immobility = true
-        for (var iti in data[4]) {
-          this.Detected_immoPrimitive.add(this.createPointPrimitive(data[4][iti], this._myCesium.Color.WHITE, this._myCesium.Color.RED))
-        }
-        for (var itc in data[5]) { // modif couleurs
-          this.myCleanDataPrimitive.add(this.createPointPrimitive(data[5][itc], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor)) // to create points
-          this.myCleanDataEntity.entities.add(this.createPointEntity(data[5][itc], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor))
+      for (var itf in data[4]) {
+        this.myfilteredDataPrimitive.add(this.createPointPrimitive(data[4][itf], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor)) // to create points
+        this.myfilteredDataEntity.entities.add(this.createPointEntity(data[4][itf], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor))
+      }
+      if (data[5].length > 0) {
+        console.log('immobility detected')
+        // this.immobility = true
+        for (var iti in data[5]) {
+          this.myDetected_immoPrimitive.add(this.createPointPrimitive(data[5][iti], this.myConfigCollection.myImmobilityData.defaultColor, this.myConfigCollection.myImmobilityData.outlineColor))
         }
       }
     },
@@ -1330,7 +1330,6 @@ export default {
     _this.$root.$on('eventing', data => {
       // Creating Collections of points
       _this.dataReceived = data
-      this.displayCheckbox = true
       _this.myRawDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my raw data') // new _this._myCesium.CustomDataSource('my raw data')
       _this.myRawDataEntity = new _this._myCesium.CustomDataSource()
       _this.myImpossibleDataPrimitive = new _this._myCesium.PointPrimitiveCollection()
@@ -1341,73 +1340,70 @@ export default {
       _this.myfilteredDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my filtered data')
       _this.myfilteredDataEntity = new _this._myCesium.CustomDataSource()
       _this.myDetected_immoPrimitive = new _this._myCesium.PointPrimitiveCollection()
-      _this.myCleanDataPrimitive = new _this._myCesium.PointPrimitiveCollection()
-      _this.myCleanDataEntity = new _this._myCesium.CustomDataSource()
       _this.myConfigCollection = {
         'myRawData': {
-          defaultColor: 4294901760,
+          defaultColor: 4294901760, // blue
           clickedColor: 4294901760,
           // clickedColor: 4278190335,//red
           outlineColor: 4294967295,
           references: _this.myRawDataPrimitive
         },
         'myImpossibleData': {
-          defaultColor: 4278190080,
+          defaultColor: 4278190080, // black
           clickedColor: 4278190080,
           outlineColor: 4294967295,
           // clickedOutlineColor: 4278255615,
           references: _this.myImpossibleDataPrimitive
         },
         'myPrefilteredData': {
-          defaultColor: 4286611584,
-          clickedColor: 4286611584,
+          defaultColor: 4278232575, // orange
+          clickedColor: 4278232575,
           outlineColor: 4294967295,
           references: _this.myPrefilteredDataPrimitive
         },
         'myEliminatedData': {
-          defaultColor: 4278190335,
-          clickedColor: 4294967295,
-          outlineColor: 4294967295,
+          defaultColor: 4278190335, // red
+          clickedColor: 4294967295, // white
+          outlineColor: 4278190080,
           references: _this.myEliminatedDataPrimitive
         },
         'myfilteredData': {
-          defaultColor: 4278222848,
-          clickedColor: 4278190335,
+          defaultColor: 4278222848, // green
+          clickedColor: 4278190335, // red
           outlineColor: 4294967295,
           references: _this.myfilteredDataPrimitive
         },
         'myImmobilityData': { //  à modifier
-          defaultColor: 4278222848,
-          clickedColor: 4278190335,
+          defaultColor: 4286611584,// grey
+          clickedColor: 4286611584,
           outlineColor: 4294967295,
-          references: null
-          // references: _this.myfilteredDataPrimitive
-        },
-        'myCleanData': { // à modifier
-          defaultColor: 4278222848,
-          clickedColor: 4278190335,
-          outlineColor: 4294967295,
-          references: null
-          // references: _this.myfilteredDataPrimitive
+          references: null,
+          references: _this.myDetected_immoPrimitive
         }
       }
       var terrainProvider = _this._myViewer.terrainProvider
-      var position = data[3].map(function(item) { 
-        return _this._myCesium.Cartographic.fromDegrees( Number(item.LON), Number(item.LAT),  Number(item.elevation) ) 
-      })
-      // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
-      var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
-      this._myCesium.when(promise, function (updatedPositions) {
-        for ( var i =0; i < updatedPositions.length; i++) {
-          _this.dataReceived[3][i].elevation = updatedPositions[i].height
+      if (data[4].length !== 0) {
+        var position = data[4].map(function(item) { 
+          return _this._myCesium.Cartographic.fromDegrees( Number(item.LON), Number(item.LAT),  Number(item.elevation) ) 
+        })
+        // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
+        var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
+        this._myCesium.when(promise, function (updatedPositions) {
+          for ( var i =0; i < updatedPositions.length; i++) {
+            if (updatedPositions[i].height > _this.dataReceived[4][i].elevation) {
+              _this.dataReceived[4][i].elevation = updatedPositions[i].height
+            } 
+            if (data[6] === 'Terrestrian' || data[6] === 'Aquatic') {
+              _this.dataReceived[4][i].elevation = updatedPositions[i].height
+            }
           }
-        _this.instanciateCollection(_this.dataReceived)
-        console.log('elevation', position[0].height)
-        debugger
-      })
-     
-
-
+          _this.instanciateCollection(_this.dataReceived)
+          console.log('elevation', position[0].height)
+          _this.displayCheckbox = true
+        })
+      } else {
+        this.displayCheckbox = true
+      }
     })
   },
 
