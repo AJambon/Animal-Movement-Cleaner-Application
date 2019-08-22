@@ -19,6 +19,8 @@
                 name="flavour-1"
                 @change="onCheckboxCollectionChange($event)"
               ></b-form-checkbox-group>
+              <div>Selected in filtered data: <strong>{{ pointsToRemoveFd }}</strong></div>
+              <div>Selected in eliminated data: <strong>{{ pointsToRemoveEd }}</strong></div>
               <!-- <input id = "rd" value="rd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
               <label for="rd">Raw data</label>
               <input id = "ipd" value="ipd" name="checkboxp" type="checkbox" @change="onCheckboxCollectionChange($event)"/>
@@ -125,6 +127,8 @@ export default {
       displayCheckbox: false,
       loading: false,
       // immobility: false,
+      pointsToRemoveFd: [],
+      pointsToRemoveEd: [],
       mySelectedPoints: [],
       terrainTransparency: false,
       selected: [],
@@ -146,6 +150,16 @@ export default {
     }
   },
   methods: {
+    homeButtonLocation() {
+      if ("geolocation" in navigator) {
+        // check if geolocation is supported/enabled on current browser
+        navigator.geolocation.getCurrentPosition(
+        function success(position) {
+        // for when getting location is a success
+        console.log('latitude', position.coords.latitude, 'longitude', position.coords.longitude)
+        })
+      }
+    },
     spinnerOn () {
       this.loading = true
     },
@@ -1009,9 +1023,30 @@ export default {
           for (var item in _this.myConfigCollection) {
             if (selectCollection === _this.myConfigCollection[item].references) { // to find matching collection
               if (PointColorRgba === _this.myConfigCollection[item].defaultColor) { // to know in what color is the point and give him the other one
+                // to write selected points id in span
+                if (_this.myConfigCollection[item].defaultColor === 4278222848) {
+                  _this.pointsToRemoveFd.push(Number(selectPoint.id))
+                } else {
+                  _this.pointsToRemoveEd.push(Number(selectPoint.id))
+                }
                 selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].clickedColor)
                 _this.mySelectedPoints.push(selectPoint)
               } else {
+                // To remove id from liste span selected
+                if (_this.myConfigCollection[item].defaultColor === 4278222848) {
+                  for (var i=0; i < _this.pointsToRemoveFd.length; i++) {
+                    if (Number(selectPoint.id) === _this.pointsToRemoveFd[i] ) {
+                      _this.pointsToRemoveFd.splice(i,1)
+                    }
+                  }
+                } else {
+                  for (var i=0; i <= _this.pointsToRemoveEd.length; i++) {
+                    if (Number(selectPoint.id) === _this.pointsToRemoveEd[i] ) {
+                      _this.pointsToRemoveFd.splice(i,1)
+                    }
+                  }
+                }
+                // to undo changes so the point won't be removed
                 selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].defaultColor)
                 _this.findAndRemovePointSelected(selectPoint) // when point is clicked on a second time , give back default color and delete from selected point list
               }
@@ -1113,6 +1148,12 @@ export default {
           )
           this.myEliminatedDataPrimitive.remove(this.mySelectedPoints[point].primitive)
           this.myEliminatedDataEntity.entities.remove(pointEntity)
+          for(var i=0; i<this.dataReceived[0].length; i++) {
+            if (this.dataReceived[0][i].id === this.mySelectedPoints[point].primitive._id) {
+              this.dataReceived[0][i].status='validated by hand'
+            }
+          }
+          //this.dataReceived[0][id].status='validated by hand' // pas bon, deuxième indice renvoie à index et non à id.. du coup décalage
         } else {
           this.myEliminatedDataEntity.entities.add(
             {
@@ -1150,10 +1191,18 @@ export default {
           )
           this.myfilteredDataPrimitive.remove(this.mySelectedPoints[point].primitive)
           this.myfilteredDataEntity.entities.remove(pointEntity)
+          for(var i=0; i<this.dataReceived[0].length; i++) {
+            if (this.dataReceived[0][i].id === this.mySelectedPoints[point].primitive._id) {
+              this.dataReceived[0][i].status='removed by hand'
+            }
+          }
+          // this.dataReceived[0][id].status='removed by hand' // pas bon, deuxième indice renvoie à index et non à id.. du coup décalage
         }
       }
       // _this.myRawDataPrimitive._pointPrimitives.find(function(item) {  return item.id == selectPoint.id } )
       this.mySelectedPoints = []
+      this.pointsToRemoveFd = []
+      this.pointsToRemoveEd = []
     },
     // remove_point () {
     //   // var SelectedPoint = this._myViewer.selectedEntity
@@ -1185,11 +1234,11 @@ export default {
     },
     // to clean everything before importing new data
     cleanCollection () {
-      // console.log('update du front')
       if (this.myRawDataPrimitive || this.myPrefilteredDataPrimitive || this.myEliminatedDataPrimitive || this.myfilteredDataPrimitive) {
         if (confirm('You are going to loose current data, do you still want to proceed ?')) {
           // to destroy the collection and erase points from viewer
           this.myRawDataPrimitive.destroy()
+          this.myImpossibleDataPrimitive.destroy()
           this.myPrefilteredDataPrimitive.destroy()
           this.myEliminatedDataPrimitive.destroy()
           this.myfilteredDataPrimitive.destroy()
@@ -1199,21 +1248,11 @@ export default {
           this.myEliminatedDataEntity.entities.removeAll()
           this.myfilteredDataEntity.entities.removeAll()
           this._myViewer.entities.removeAll()
-          // to uncheck checkboxes
-          var allcheckbox = document.querySelectorAll('div#primitive input')
-          for (var i = 0; i < allcheckbox.length; i++) {
-            allcheckbox[i].checked = false
-          }
-          var allcheckboxentities = document.querySelectorAll('div#player input')
-          for (var j = 0; j < allcheckboxentities.length; j++) {
-            allcheckboxentities[j].checked = false
-          }
+          // to uncheck checkboxes and empty checkboxes and radio selected
+          this.selected = []
+          this.picked = ''
           this.customDestroyTimeline()
           this.displayCheckbox = false
-          // document.getElementById('rd').checked = false
-          // document.getElementById('pfd').checked = false
-          // document.getElementById('ed').checked = false
-          // document.getElementById('fd').checked = false
         }
       }
     },
@@ -1350,7 +1389,7 @@ export default {
         'myEliminatedData': {
           defaultColor: 4278190335, // red
           clickedColor: 4294967295, // white
-          outlineColor: 4294967295,
+          outlineColor: 4278190080,
           references: _this.myEliminatedDataPrimitive
         },
         'myfilteredData': {
