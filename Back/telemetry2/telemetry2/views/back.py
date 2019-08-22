@@ -43,14 +43,19 @@ def init_upload(request):
     # workingDf.insert(len(workingDf.columns),'status','pending')
     points_prefiltered = dfToListDict(workingDf)
     rawPointsAnnotated = dfToListDict(rawPointsDf)
-    rawPointsAnnotated, eliminatedSpeed,points_filtered1 =Speed_algo(rawPointsAnnotated,points_prefiltered,maxSpeed,deploymentDate) # voir quoi faire avec rawPoints
+    rawPointsAnnotated, eliminatedSpeed,points_filtered1, alertDate =Speed_algo(rawPointsAnnotated,points_prefiltered,maxSpeed,deploymentDate) # voir quoi faire avec rawPoints
+    if alertDate == 1:
+        return rawPointsAnnotated,points_prefiltered,dfToListDict(impossiblePointsdf), eliminatedSpeed, points_filtered1, speciesType, alertDate
     if technology == 'argos':
         Argoserror = ArgosError()
         rawPointsAnnotated,detected_immo,points_filtered2 = Immobility_algo(rawPointsAnnotated,points_filtered1,Argoserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
     if technology == 'gps':
         Gpserror = GpsError()
         rawPointsAnnotated,detected_immo,points_filtered2 = Immobility_algo(rawPointsAnnotated,points_filtered1,Gpserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
-    return rawPointsAnnotated,points_prefiltered,dfToListDict(impossiblePointsdf), eliminatedSpeed, points_filtered2, detected_immo, speciesType
+    print('eleminated')
+    print(eliminatedSpeed)
+    print(len(eliminatedSpeed))
+    return rawPointsAnnotated,points_prefiltered,dfToListDict(impossiblePointsdf), eliminatedSpeed, points_filtered2, detected_immo, speciesType, alertDate
     
 
 def DataFrameManagement(objFile,WantedData):
@@ -323,10 +328,15 @@ def findDuplicates(candidateDf):
 # until a plausible location is found
 def Speed_algo(rawPointsAnnotated,points,MaxSpeed,deploymentDatestr):
     eliminatedSpeed =[]
+    pointsfiltered = []
     deploymentDateobj = datetime.datetime.strptime(deploymentDatestr, '%Y-%m-%dT%H:%M')
     deploymentDateobj = deploymentDateobj.isoformat()
     L=len(points)
     start = 0
+    alertDate = 0
+    if points[L-1]['date'] < deploymentDateobj:
+        alertDate = 1
+        return rawPointsAnnotated, eliminatedSpeed, pointsfiltered, alertDate
     # To start speed calculation from release event
     if points[0]['date'] < deploymentDateobj:
         for d in range (L):
@@ -335,6 +345,9 @@ def Speed_algo(rawPointsAnnotated,points,MaxSpeed,deploymentDatestr):
                 break 
             else:
                 eliminatedSpeed.append(points[d]) 
+                for l in range (len(rawPointsAnnotated)):
+                    if rawPointsAnnotated[l]['id'] == points[d]['id']: 
+                        rawPointsAnnotated[l]['status']= 'before deployment'
                 points[d]['distance1'] = 0
                 points[d]['speed'] = 0   
     # Pas possible de donner date sup à dernère date jeu de données! Faire une alerte ?
@@ -350,12 +363,14 @@ def Speed_algo(rawPointsAnnotated,points,MaxSpeed,deploymentDatestr):
             points[i+j]['speed'] = speed
             if speed > MaxSpeed:
                 eliminatedSpeed.append(points[i+j])
-                rawPointsAnnotated[i+j]['status']= 'speed outlier'
+                for l in range (len(rawPointsAnnotated)):
+                    if rawPointsAnnotated[l]['id'] == points[i+j]['id']: 
+                        rawPointsAnnotated[l]['status']= 'speed outlier'
             else:
                 i=i+j
                 break 
-    pointsfiltered = [x for x in points if x not in eliminatedSpeed]             
-    return rawPointsAnnotated, eliminatedSpeed, pointsfiltered # renvoi 1/la collection avec tous les points mais annotés, 2/les points éliminés par vitesse et 3/ 1-2
+    pointsfiltered = [x for x in points if x not in eliminatedSpeed]          
+    return rawPointsAnnotated, eliminatedSpeed, pointsfiltered, alertDate # renvoi 1/la collection avec tous les points mais annotés, 2/les points éliminés par vitesse et 3/ 1-2
     
 
 
