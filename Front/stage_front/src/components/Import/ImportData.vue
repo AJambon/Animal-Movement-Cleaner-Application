@@ -7,11 +7,14 @@
                 <label for="csv-file">Choose your file</label>
               </button>
               <input id="csv-file" name="newcsv" type="file" ref="file" accept=".csv" v-on:change="onSelect()"/>
+              <!-- <b-form-file v-model="file" :state="Boolean(file)" placeholder="Choose a file or drop it here..." drop-placeholder="Drop file here..."
+              ></b-form-file> -->
             </div>
             <div class="message">
               <h5>{{message}}</h5>
             </div>
-          <textarea id="byhand" type="text" name="species">1,2018-04-15T02:00:00.000,45.227860,06.779090,1240,1,3D
+          <textarea id="byhand" type="text" name="species"></textarea>
+          <!-- 1,2018-04-15T02:00:00.000,45.227860,06.779090,1240,1,3D
 2,2018-04-15T05:00:00.000,45.227770,06.779150,1204,1.1,3D
 3,2018-04-15T08:00:00.000,45.227850,06.777650,1383,1.8,3D
 4,2018-04-15T11:00:00.000,45.227050,06.780260,1281,1.1,3D
@@ -136,7 +139,7 @@
 123,2018-05-01T17:00:00.000,45.216960,06.695650,1314,1.4,3D
 124,2018-05-01T20:00:00.000,45.217480,06.697010,1392,4.8,3D
 125,2018-05-01T23:00:00.000,45.218160,06.697110,1445,1.8,3D
-126,2018-05-02T02:00:00.000,45.218210,06.696930,1388,2.1,3D</textarea>
+126,2018-05-02T02:00:00.000,45.218210,06.696930,1388,2.1,3D -->
 <!--127,2018-05-02T05:01:00.000,00.000000,00.000000,0,0,GPS TimeOut
 128,2018-05-02T08:01:00.000,45.217880,06.696870,1344,1.9,3D
 129,2018-05-02T11:00:00.000,45.218060,06.697820,1341,1.2,3D
@@ -2630,7 +2633,7 @@ export default {
   },
   methods: {
     UpdateData () {
-      if (this.submit== false) {
+      if (this.submit== true) {
         if (confirm('You are going to loose current data, do you still want to proceed ?')) {
           this.$emit('UpdateData', true)
           this.mysubmit()
