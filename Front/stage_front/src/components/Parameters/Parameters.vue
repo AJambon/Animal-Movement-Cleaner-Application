@@ -36,7 +36,7 @@
               <label>Immobility min. duration (h)</label>
               <b-form-input id="immo_time" v-model="parameters.immoTime" required placeholder="Enter minimum immobility duration to consider it as immobility detection" @change="parametersSelection"></b-form-input>
             </div>
-
+            <b-button @click="csvPattern">Download CSV pattern</b-button>
           </b-form>
         </b-collapse>
       </div>
@@ -69,10 +69,27 @@ export default {
   methods: {
     parametersSelection () {
       EventBusParameters.$emit('ParamsSelect', this.parameters)
+    },
+    csvPattern() {
+      console.log('ok')
+      var mandatoryColumns = ['event-id','timestamp','location-lat','location-long','elevation(optional)','HDOP(optional)','info(optional)']
+      var separator = ';'
+      var headers = mandatoryColumns.join(separator)
+      headers += '\n'
+      var ligne = ''
+      this.myCSV = headers
+      var hiddenElement = document.createElement('a')
+      hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(this.myCSV)
+      hiddenElement.target = '_blank'
+      hiddenElement.download = 'csv_pattern.csv'
+      document.body.appendChild(hiddenElement)
+      hiddenElement.click()
+      document.body.removeChild(hiddenElement)
     }
   },
   mounted () {
     this.parametersSelection()
+    // this.csvPattern()
   }
 }
 </script>

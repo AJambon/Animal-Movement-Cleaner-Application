@@ -61,9 +61,6 @@ import Parameters from './components/Parameters/Parameters.vue'
 import VueCesium from 'vue-cesium'
 import Vue from 'vue'
 
-import 'bootstrap/dist/css/bootstrap.css'
-import 'bootstrap-vue/dist/bootstrap-vue.css'
-
 Vue.use(VueCesium)
 
 export default {
