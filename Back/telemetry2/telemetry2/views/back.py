@@ -10,6 +10,7 @@ from copy import deepcopy
 import sys
 import json
 import pandas as pd 
+from tempfile import NamedTemporaryFile 
 import numpy as np
 from math import radians, sin, cos, acos, sqrt
 from pyramid.view import view_config
@@ -29,7 +30,8 @@ def init_upload(request):
     deploymentDate = parameters['deploymentDate']
     objFile = request.POST.get('file') # gets csv file uploaded from Front app
     WantedData=['event-id','timestamp','location-lat','location-long'] # à demander en paramètres d'entrée
-    rawPointsDf = DataFrameManagement(objFile,WantedData) # function to have a df with expected data
+    optionalData=['elevation(optional)','HDOP(optional)','info(optional)']
+    rawPointsDf = DataFrameManagement(objFile,WantedData,optionalData) # function to have a df with expected data
     rawPointsDf.insert(len(rawPointsDf.columns),'status','')
     trustedPointsdf,impossiblePointsdf=prefilterData(rawPointsDf)
     # To annotate points
@@ -52,14 +54,25 @@ def init_upload(request):
     if technology == 'gps':
         Gpserror = GpsError()
         rawPointsAnnotated,detected_immo,points_filtered2 = Immobility_algo(rawPointsAnnotated,points_filtered1,Gpserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
-    print('eleminated')
-    print(eliminatedSpeed)
-    print(len(eliminatedSpeed))
     return rawPointsAnnotated,points_prefiltered,dfToListDict(impossiblePointsdf), eliminatedSpeed, points_filtered2, detected_immo, speciesType, alertDate
     
 
-def DataFrameManagement(objFile,WantedData):
-    data = pd.read_csv(objFile.file,dtype=str)
+def returnGoodCSV (f):
+    with NamedTemporaryFile(dir='.', delete=False, mode='w+b', suffix='.csv') as resultfile:
+        filecontent : str = f.read()
+        filecontent = filecontent.replace(b',',b';')
+        
+        resultfile.write(filecontent)
+        return resultfile.name
+
+def DataFrameManagement(objFile,WantedData,optionalData):
+    goodCSVFileName = returnGoodCSV (objFile.file)
+
+    data = pd.read_csv(goodCSVFileName,sep = ';',dtype=str)
+    for option in optionalData:
+        for col in data.columns:
+            if option == col:
+                WantedData.append(option)
     dataM=data[WantedData] # Keep only WantedData from the dataframe
     L=len(dataM.columns)
     ExpectedLabels = ['id','date','LAT','LON','elevation','HDOP','info'] # list of labels of the most complete dataset 
@@ -174,8 +187,9 @@ def prefilterData(data):
     return trustedPointsdf , eleminatedPointsdf
 
 def findPointsToEliminate(data):
-    return data.loc[~data['info'].isin(['2D','3D',np.NAN])]
-    
+    dataToEliminate = data.loc[(~data['info'].isin(['2D','3D',np.NAN]))] # & (abs(float(data['LAT']>90))) & (abs(float(data['LON']>180)))]
+    return dataToEliminate
+
 def findTrustedPoints(data):
     return data.loc[(data['HDOP']=='0.7') & (data['info'].isin(['2D','3D',np.NAN]))]
 
@@ -216,8 +230,6 @@ def findDuplicates(candidateDf):
     # candidateDf['total'] = 0
     # candidateDf['total'] = candidateDf.isna().sum(axis=1)
     allDuplicatedDf = candidateDf[candidateDf.duplicated(['date'],keep=False)]
-    print('allDuplicatedDf')
-    print(allDuplicatedDf)
     listDateGroup = allDuplicatedDf['date'].unique().tolist()
     duplicatedRowsToDelete = None
 
