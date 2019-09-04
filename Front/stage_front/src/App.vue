@@ -1421,7 +1421,7 @@ button{
 /* TRANSPARENCE */
 #globeOptions{
   width: fit-content;
-  position: absolute;
+  position: fixed;
   bottom: 0;
   left: 30%;
   transform: translateX(45%);
