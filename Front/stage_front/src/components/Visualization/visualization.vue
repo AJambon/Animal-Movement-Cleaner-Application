@@ -1,9 +1,26 @@
 <template>
   <header>
     <h1>Animal Movement Cleaner Application</h1>
-    <a href="#">
+    <div>
+      <b-button id="show-btn" @click="$bvModal.show('bv-modal-example')">HELP</b-button>
+
+      <b-modal id="bv-modal-example" hide-footer>
+        <template v-slot:modal-title>
+          Help
+        </template>
+        <div class="d-block text-center">
+          <h3>Here are several information about what can be done with Animal Movement Application</h3>
+        </div>
+        <b-button class="mt-3" block @click="$bvModal.hide('bv-modal-example')">Close</b-button>
+      </b-modal>
+      <!-- <b-button v-b-modal.modal-1>HELP</b-button>
+      <b-modal id="modal-1" title="BootstrapVue">
+        <p class="my-4">Here are several information about what can be done with Animal Movement Application</p>
+      </b-modal> -->
+    </div>
+    <!-- <a href="#">
       HELP
-    </a>
+    </a> -->
   </header>
 </template>
 
