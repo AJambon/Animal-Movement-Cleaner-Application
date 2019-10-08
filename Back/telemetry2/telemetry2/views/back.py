@@ -13,6 +13,7 @@ import pandas as pd
 from tempfile import NamedTemporaryFile 
 import numpy as np
 from math import radians, sin, cos, acos, sqrt
+import statistics
 from pyramid.view import view_config
 from pyramid.response import Response
 from pyramid.request import Request
@@ -30,7 +31,7 @@ def init_upload(request):
     deploymentDate = parameters['deploymentDate']
     objFile = request.POST.get('file') # gets csv file uploaded from Front app
     WantedData=['event-id','timestamp','location-lat','location-long'] # à demander en paramètres d'entrée
-    optionalData=['elevation(optional)','HDOP(optional)','info(optional)']
+    optionalData=['elevation','hdop','info']
     rawPointsDf = DataFrameManagement(objFile,WantedData,optionalData) # function to have a df with expected data
     rawPointsDf.insert(len(rawPointsDf.columns),'status','')
     trustedPointsdf,impossiblePointsdf=prefilterData(rawPointsDf)
@@ -54,7 +55,8 @@ def init_upload(request):
     if technology == 'gps':
         Gpserror = GpsError()
         rawPointsAnnotated,detected_immo,points_filtered2 = Immobility_algo(rawPointsAnnotated,points_filtered1,Gpserror,immo_time) # x= distance maximale entre un point et fin + à partir d'un nombre de points. + données d'activité! Attention Argos, 30km d'erreur
-    return rawPointsAnnotated,points_prefiltered,dfToListDict(impossiblePointsdf), eliminatedSpeed, points_filtered2, detected_immo, speciesType, alertDate
+    trackInfo=calculateStats(points_filtered2)
+    return rawPointsAnnotated,points_prefiltered,dfToListDict(impossiblePointsdf), eliminatedSpeed, points_filtered2, detected_immo, speciesType, alertDate, trackInfo
     
 
 def returnGoodCSV (f):
@@ -227,19 +229,19 @@ def annotatedResult(rawPointsDf,eleminatedPointsdf,trustedPointsdf):
 #     return  points_prefiltered
 
 def findDuplicates(candidateDf):
-    # candidateDf['total'] = 0
-    # candidateDf['total'] = candidateDf.isna().sum(axis=1)
+    # Dataframe rassemblant tous les doublons sur la date
     allDuplicatedDf = candidateDf[candidateDf.duplicated(['date'],keep=False)]
+    # Récupération des dates pour lesquelles il y a des doublons
     listDateGroup = allDuplicatedDf['date'].unique().tolist()
     duplicatedRowsToDelete = None
-
+    # Récupération des doublons d'une date donnée
     for date in listDateGroup:
         currentDf = allDuplicatedDf.loc[allDuplicatedDf['date']==date]
-        # currentDf.insert(len(allDuplicatedDf.columns),'total',0)
+        # Dénombrement des colonnes vides pour chaque doublon
         currentDf['total'] = currentDf.isnull().sum(axis=1)
         currentDfOrdered = currentDf.sort_values(by='total',ascending=True)
+        # Ajout à la collection des doublons sauf pour le premier qui est donc conservé car étant plus complet 
         duplicatedRowsToDelete = pd.concat([currentDfOrdered[1:],duplicatedRowsToDelete])
-    # candidateDf.drop(['total'] , axis=1)
     if duplicatedRowsToDelete is not None:
         duplicatedRowsToDelete = duplicatedRowsToDelete.drop(['total'] , axis=1)
     return duplicatedRowsToDelete
@@ -346,10 +348,11 @@ def Speed_algo(rawPointsAnnotated,points,MaxSpeed,deploymentDatestr):
     L=len(points)
     start = 0
     alertDate = 0
+    # Vérification que la date de déploiement soit bien avant la date de la dernière donnée 
     if points[L-1]['date'] < deploymentDateobj:
         alertDate = 1
         return rawPointsAnnotated, eliminatedSpeed, pointsfiltered, alertDate
-    # To start speed calculation from release event
+    # Recherche de l'indice de la donnée correspondant au déploiement pour commencer le filtre de vitesse à partir de cet indice
     if points[0]['date'] < deploymentDateobj:
         for d in range (L):
             if points[d]['date'] >= deploymentDateobj:
@@ -362,17 +365,22 @@ def Speed_algo(rawPointsAnnotated,points,MaxSpeed,deploymentDatestr):
                         rawPointsAnnotated[l]['status']= 'before deployment'
                 points[d]['distance1'] = 0
                 points[d]['speed'] = 0   
-    # Pas possible de donner date sup à dernère date jeu de données! Faire une alerte ?
     points[start]['distance1'] = 0
     points[start]['speed'] = 0
     i=start
+    # Recherche des points valides sur la vitesse
     while i < L-1:
         for j in range (1,L-i):
+            # Calcul de la distance
             points[i+j]['distance1'] = vincenty((float(points[i]['LAT']),float(points[i]['LON'])),(float(points[i+j]['LAT']),float(points[i+j]['LON'])))
+            # Calcul de la durée
             diftimeS=datetime.datetime.strptime(points[i+j]['date'],'%Y-%m-%dT%H:%M:%S') - datetime.datetime.strptime(points[i]['date'],'%Y-%m-%dT%H:%M:%S')
             diftimeH=diftimeS.total_seconds()/3600
+            # Calcul de la vitesse
             speed=points[i+j]['distance1']/float(diftimeH)
             points[i+j]['speed'] = speed
+            # Comparaison à la vitesse maximale entrée en paramètre,
+            # Si la vitesse est considérée aberrante on ajoute le point aux données éliminées et on l'annote dans les données brutes 
             if speed > MaxSpeed:
                 eliminatedSpeed.append(points[i+j])
                 for l in range (len(rawPointsAnnotated)):
@@ -381,8 +389,10 @@ def Speed_algo(rawPointsAnnotated,points,MaxSpeed,deploymentDatestr):
             else:
                 i=i+j
                 break 
+    # Elimination des points dont la vitesse a été jugée aberrante
     pointsfiltered = [x for x in points if x not in eliminatedSpeed]          
-    return rawPointsAnnotated, eliminatedSpeed, pointsfiltered, alertDate # renvoi 1/la collection avec tous les points mais annotés, 2/les points éliminés par vitesse et 3/ 1-2
+    return rawPointsAnnotated, eliminatedSpeed, pointsfiltered, alertDate 
+    # renvoi 1/la collection avec tous les points mais annotés, 2/les points éliminés par vitesse et 3/ 1-2
     
 
 
@@ -414,30 +424,38 @@ def GpsError():
     error = 50 # voir quoi mettre, maxerror, average error..
     return error 
 
-def Immobility_algo(rawPointsAnnotated,points,immo_range, immo_time): # trouver le barycentre de points, trouver le point le plus distant de ce barycentre -> rayon du cercle : tant que le rayon
+def Immobility_algo(rawPointsAnnotated,points,immo_range, immo_time):
     pointsAlive = []
     detected_immo = []
     L=len(points)
-    # Démarrer de la fin
     points_for_circle = [] 
     K = len(points_for_circle)   
     r=0
+    # Boucle en partant de la fin
     for record in reversed(points):
+        # Conversion des coordonnées en degrés en coordonnées cartésiennes
         x,y,zone,p= utm.from_latlon(float(record['LAT']),float(record['LON']))
+        # Ajout du point à la liste permettant de faire le cercle minimum
         points_for_circle.append((x,y))
+        # Création du cercle minimum
         cx,cy,r = make_circle(points_for_circle)
         detected_immo.append(record)
-        #print('le rayon',r)
+        # Vérification du rayon du cercle : s'il est supérieur à l'erreur de localisation, 
+        # alors le dernier point ajouté ne faisait pas partie de l'immobilité
         if r > immo_range : 
             del points_for_circle[-1]
             del detected_immo[-1]
             break
     K = len(points_for_circle)  
+    # Calcul de la durée de la potentielle immobilité détectée
     diftimeS=datetime.datetime.strptime(points[L-1]['date'],'%Y-%m-%dT%H:%M:%S') - datetime.datetime.strptime(points[L-K]['date'],'%Y-%m-%dT%H:%M:%S')
     diftimeH=diftimeS.total_seconds()/3600
+    # Comparaison de la durée calculée diftimeH à la durée minimale entrée en paramètre immo_time,
+    # Si diftimeH >= immo_time, l'immobilité est validée
     if diftimeH >= immo_time:
         print('Immobility detected from',points[L-K]['date'])
         pointsAlive = [x for x in points if x not in detected_immo]
+        # Annotation des points de l'immobilité dans la collection des données brutes
         for i in range (len(rawPointsAnnotated)):
             if rawPointsAnnotated[i]['date']>= points[L-K]['date']:
                 rawPointsAnnotated[i]['status']='immobility'
@@ -445,6 +463,28 @@ def Immobility_algo(rawPointsAnnotated,points,immo_range, immo_time): # trouver 
         detected_immo = []
         pointsAlive = points
         print("Aucune immobilité n'a été détectée")
-    return rawPointsAnnotated,detected_immo, pointsAlive #voir pour renvoyer une 3ème collection annotées
+    return rawPointsAnnotated,detected_immo, pointsAlive
 
-
+def calculateStats(points_filtered2):
+    L = len(points_filtered2)
+    trackDuration = datetime.datetime.strptime(points_filtered2[L-1]['date'],'%Y-%m-%dT%H:%M:%S') - datetime.datetime.strptime(points_filtered2[0]['date'],'%Y-%m-%dT%H:%M:%S')
+    trackDuration = trackDuration.days
+    # if trackDuration < 1:
+    #     trackDuration = trackDuration/np.timedelta64(1,'D')
+    # trackDurationH = trackDurationS.total_seconds()/3600
+    overallDistance = 0
+    speed = []
+    for i in range(L):
+        overallDistance = overallDistance + points_filtered2[i]['distance1']
+        speed.append(points_filtered2[i]['speed'])
+    meanSpeed = round(statistics.mean(speed),2)
+    maxSpeed = round(max(speed),2)
+    overallDistance = round(overallDistance)
+    trackInfo = {
+        'trackDuration' : trackDuration, 
+        'overallDistance' : overallDistance,
+        'meanSpeed' : meanSpeed,
+        'maxSpeed' : maxSpeed
+    }
+    print(trackInfo)
+    return trackInfo

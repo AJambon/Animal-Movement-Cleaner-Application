@@ -41,7 +41,7 @@ export default {
     // to get data from back
     this.$root.$on('CSVtodownload', dataPoints => {
       // console.log('databrut', data[0])
-      var mandatoryColumns = ['id', 'date', 'LON', 'LAT', 'elevation', 'HDOP', 'info']
+      var mandatoryColumns = ['id', 'date', 'LON', 'LAT', 'elevation']
       var separator = ';'
       var headers = mandatoryColumns.join(separator)
       headers += '\n'
