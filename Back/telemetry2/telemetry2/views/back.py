@@ -189,7 +189,7 @@ def prefilterData(data):
     return trustedPointsdf , eleminatedPointsdf
 
 def findPointsToEliminate(data):
-    dataToEliminate = data.loc[(~data['info'].isin(['2D','3D',np.NAN]))] # & (abs(float(data['LAT']>90))) & (abs(float(data['LON']>180)))]
+    dataToEliminate = data.loc[(~data['info'].isin(['2D','3D',np.NAN]))|((data['LAT'].isnull())|(data['LON'].isnull()))] # & (abs(float(data['LAT']>90))) & (abs(float(data['LON']>180)))]
     return dataToEliminate
 
 def findTrustedPoints(data):
