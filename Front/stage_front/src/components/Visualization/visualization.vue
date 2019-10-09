@@ -40,7 +40,7 @@ export default{
 </script>
 
 <style>
-header{
+header:not(.modal-header){
   background: #111;
   padding: 0px;
   text-align: left;
@@ -53,23 +53,42 @@ header{
   top: 0;
   right: 0;
   z-index: 9999;
+  max-height: 56px !important;
 }
 header h1{
   font-size: 2em;
   padding: 10px 20px;
   margin: 0px;
 }
-header a{
-  background-color: #1b568c;
+header div button{
+  background-color: #1b568c !important;
   color: #fff;
   font-weight: bold;
-  padding: 0px 50px;
-  display: flex;
-  align-items: center;
+  padding: 0px 50px !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 100%;
+  border-radius: 0px !important;
+  border: none !important;
 }
-header a:hover{
-  color: #fff;
-  background-color: #2367a5;
+header div button:hover{
+  background-color: #2367a5 !important;
   text-decoration: none;
 }
+.modal-dialog{
+  margin-top: 87px;
+}
+
+.modal-dialog .modal-header button{
+  width: inherit;
+  box-shadow: inherit;
+}
+
+.modal-dialog .modal-body h3{
+  font-size: 1.2em;
+}
+
+.modal-dialog #show-btn{
+  display: none;
+  }
 </style>

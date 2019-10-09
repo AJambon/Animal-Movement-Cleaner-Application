@@ -1318,6 +1318,8 @@ form div label {
   text-align: left;
   line-height: 19px;
   margin-bottom: 0px;
+  display: flex;
+  align-items: center;
 }
 form div select, form div input{
   width: 65%;
@@ -1334,6 +1336,9 @@ form div:last-of-type label{
 }
 form div:last-of-type input{
   width: 27%;
+}
+form button{
+  width: 100%;
 }
 /* FICHIER */
 .fields{
