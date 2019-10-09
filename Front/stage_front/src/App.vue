@@ -9,6 +9,7 @@
         <div v-if="displayCheckbox">
           <div id='primitive'>
             <h2>Choose the collection to display</h2>
+            <b-alert show variant="warning"> Track duration: <strong>{{trackDuration}} days</strong> , Overall distance: <strong>{{overallDistance}} km</strong>, <br/>Mean speed: <strong>{{meanSpeed}} km/h</strong>, Max speed: <strong>{{maxSpeed}} km/h</strong></b-alert>
             <b-form-group>
               <b-form-checkbox-group id="checkbox-group-1" v-model="selected" name="flavour-1" @change="onCheckboxCollectionChange($event)">
                 <b-form-checkbox value="rd" :disabled="myRawDataPrimitive.length == 0">Raw data</b-form-checkbox>
@@ -100,6 +101,10 @@ export default {
       displayCheckbox: false,
       loading: false,
       // immobility: false,
+      trackDuration: 0,
+      overallDistance: 0,
+      meanSpeed: 0,
+      maxSpeed: 0,
       pointsToRemoveFd: [],
       pointsToRemoveEd: [],
       mySelectedPoints: [],
@@ -1136,6 +1141,11 @@ export default {
     // MODIFIER AVEC THIS.EMIT DANS ImportData ET EVENT LISTENER DANS APP avec fonction https://www.telerik.com/blogs/how-to-emit-data-in-vue-beyond-the-vuejs-documentation
     _this.$root.$on('eventing', data => {
       // Creating Collections of points
+      console.log(data[8])
+      _this.trackDuration = data[8].trackDuration
+      _this.overallDistance = data[8].overallDistance
+      _this.meanSpeed = data[8].meanSpeed
+      _this.maxSpeed = data[8].maxSpeed
       _this.dataReceived = data
       _this.myRawDataPrimitive = new _this._myCesium.PointPrimitiveCollection('my raw data') // new _this._myCesium.CustomDataSource('my raw data')
       _this.myRawDataEntity = new _this._myCesium.CustomDataSource()
@@ -1308,6 +1318,8 @@ form div label {
   text-align: left;
   line-height: 19px;
   margin-bottom: 0px;
+  display: flex;
+  align-items: center;
 }
 form div select, form div input{
   width: 65%;
@@ -1324,6 +1336,9 @@ form div:last-of-type label{
 }
 form div:last-of-type input{
   width: 27%;
+}
+form button{
+  width: 100%;
 }
 /* FICHIER */
 .fields{
