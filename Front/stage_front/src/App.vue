@@ -111,6 +111,7 @@ export default {
       terrainTransparency: false,
       selected: [],
       picked: '',
+      // entityLabel:'',
       optionsRadios: [
         { text: 'Raw data', value: 'rd' },
         { text: 'Prefiltered data', value: 'pfd' },
@@ -128,14 +129,14 @@ export default {
     }
   },
   methods: {
-    homeButtonLocation() {
-      if ("geolocation" in navigator) {
+    homeButtonLocation () {
+      if ('geolocation' in navigator) {
         // check if geolocation is supported/enabled on current browser
         navigator.geolocation.getCurrentPosition(
-        function success(position) {
-        // for when getting location is a success
-        console.log('latitude', position.coords.latitude, 'longitude', position.coords.longitude)
-        })
+          function success (position) {
+            // for when getting location is a success
+            console.log('latitude', position.coords.latitude, 'longitude', position.coords.longitude)
+          })
       }
     },
     spinnerOn () {
@@ -395,7 +396,7 @@ export default {
             color: this._myCesium.Color.fromRgba(color),
             outlineColor: this._myCesium.Color.fromRgba(outlineColor),
             outlineWidth: 2,
-            heightReference : this._myCesium.HeightReference.CLAMP_TO_GROUND
+            heightReference: this._myCesium.HeightReference.CLAMP_TO_GROUND
           },
           label: {
             text: options.id,
@@ -404,7 +405,7 @@ export default {
             outlineWidth: 2,
             verticalOrigin: this._myCesium.VerticalOrigin.BOTTOM,
             pixelOffset: new this._myCesium.Cartesian2(0, -9),
-            heightReference : this._myCesium.HeightReference.CLAMP_TO_GROUND
+            heightReference: this._myCesium.HeightReference.CLAMP_TO_GROUND
           }
         }
       )
@@ -860,10 +861,116 @@ export default {
       const { Cesium, viewer } = cesiumInstance
       this._myCesium = Cesium
       this._myViewer = viewer
-      // to interact with point primitive on click
+      // to interact with point primitive
       var _this = this
+      var entityLabel
+      var polylineover
+      // Mouse over the globe to see the cartographic position
+      this._myViewer.screenSpaceEventHandler.setInputAction(function (movement) {
+        var cartesian = viewer.camera.pickEllipsoid(movement.endPosition, viewer.scene.globe.ellipsoid)
+        // if (!entityLabel) {
+        //   entityLabel = viewer.entities.add({
+        //     label: {
+        //       // show: false,
+        //       showBackground: true,
+        //       font: '14px monospace',
+        //       horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+        //       verticalOrigin: Cesium.VerticalOrigin.TOP,
+        //       pixelOffset: new Cesium.Cartesian2(15, 0)
+        //     }
+        //   })
+        // }
+        // if (!polylineover) {
+        //   polylineover = viewer.entities.add({
+        //     polyline: {
+        //       width: 2,
+        //       material: Cesium.Color.ORANGE,
+        //       // show: false
+        //     }
+        //   })
+        // }
+        var PassOverPrimitive = viewer.scene.pick(movement.endPosition)
+        if (Cesium.defined(PassOverPrimitive) && typeof (PassOverPrimitive.id) === 'string') {
+          if (!entityLabel) {
+            entityLabel = viewer.entities.add({
+              label: {
+                show: false,
+                showBackground: true,
+                font: '14px monospace',
+                horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+                verticalOrigin: Cesium.VerticalOrigin.TOP,
+                pixelOffset: new Cesium.Cartesian2(15, 0)
+              }
+            })
+          }
+          console.log('passover', PassOverPrimitive)
+          // To have a label with point's ID displayed
+          var pointID = PassOverPrimitive.id
+          entityLabel.position = cartesian
+          entityLabel.label.text = 'id: ' + pointID
+          entityLabel.label.show = true
+          console.log(entityLabel)
+          console.log('id', pointID)
+          // To draw a line between current point, the point before and the one after
+          if (PassOverPrimitive.collection && PassOverPrimitive.collection._pointPrimitives[0]._id !== PassOverPrimitive.id) {
+            var pointBefore = PassOverPrimitive.collection._pointPrimitives[PassOverPrimitive.primitive._index - 1]
+            var pointBeforeposition = pointBefore._position
+          }
+          console.log('collection', PassOverPrimitive.collection)
+          var lengthCol = !PassOverPrimitive.collection ? 0 :  PassOverPrimitive.collection._pointPrimitives['length']
+          if (PassOverPrimitive.collection && PassOverPrimitive.collection._pointPrimitives[lengthCol - 1]._id !== PassOverPrimitive.id) {
+            var pointAfter = PassOverPrimitive.collection._pointPrimitives[PassOverPrimitive.primitive._index + 1]
+            var pointAfterposition = pointAfter._position
+          }
+          if (!polylineover) {
+            polylineover = viewer.entities.add({
+              polyline: {
+                width: 2,
+                material: Cesium.Color.ORANGE,
+                show: false
+              }
+            })
+          }
+          if (pointBeforeposition === undefined) {
+            polylineover.polyline.positions =
+              [
+                PassOverPrimitive.primitive._position,
+                pointAfterposition
+              ]
+          }
+          if (pointAfterposition === undefined) {
+            polylineover.polyline.positions =
+              [
+                pointBeforeposition,
+                PassOverPrimitive.primitive._position
+              ]
+          }
+          if (pointAfterposition !== undefined && pointBeforeposition !== undefined) {
+            polylineover.polyline.positions =
+              [
+                pointBeforeposition,
+                PassOverPrimitive.primitive._position,
+                pointAfterposition
+              ]
+          }
+          polylineover.polyline.show = true
+          // console.log('passover 2', PassOverPrimitive)
+          console.log('polyline', polylineover)
+        } else {
+          if (polylineover) {
+            polylineover.polyline.show = false
+          }
+          if (entityLabel) {
+            entityLabel.label.show = false
+          }
+          pointBefore = undefined
+          pointBeforeposition = undefined
+          pointAfter = undefined
+          pointAfterposition = undefined
+        }
+      }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
+      // Select a primitive
       this._myViewer.screenSpaceEventHandler.setInputAction(function onLeftClick (movement) {
-        // debugger
         // _this.myRawDataPrimitive._pointPrimitives.find(function(item) {  return item.id == selectPoint.id } )
         var selectPoint = viewer.scene.pick(movement.position)
         if (selectPoint !== undefined) {
@@ -875,7 +982,7 @@ export default {
                 // to write selected points id in span
                 if (_this.myConfigCollection[item].references === _this.myfilteredDataPrimitive) {
                   _this.pointsToRemoveFd.push(Number(selectPoint.id))
-                } else if (_this.myConfigCollection[item].references === _this.myEliminatedDataPrimitive){
+                } else if (_this.myConfigCollection[item].references === _this.myEliminatedDataPrimitive) {
                   _this.pointsToRemoveEd.push(Number(selectPoint.id))
                 }
                 selectPoint.primitive.color = Cesium.Color.fromRgba(_this.myConfigCollection[item].clickedColor)
@@ -883,15 +990,15 @@ export default {
               } else {
                 // To remove id from liste span selected
                 if (_this.myConfigCollection[item].references === _this.myfilteredDataPrimitive) {
-                  for (var i=0; i < _this.pointsToRemoveFd.length; i++) {
-                    if (Number(selectPoint.id) === _this.pointsToRemoveFd[i] ) {
-                      _this.pointsToRemoveFd.splice(i,1)
+                  for (var i = 0; i < _this.pointsToRemoveFd.length; i++) {
+                    if (Number(selectPoint.id) === _this.pointsToRemoveFd[i]) {
+                      _this.pointsToRemoveFd.splice(i, 1)
                     }
                   }
                 } else if (_this.myConfigCollection[item].references === _this.myEliminatedDataPrimitive) {
-                  for (var i=0; i <= _this.pointsToRemoveEd.length; i++) {
-                    if (Number(selectPoint.id) === _this.pointsToRemoveEd[i] ) {
-                      _this.pointsToRemoveEd.splice(i,1)
+                  for (var j = 0; j <= _this.pointsToRemoveEd.length; j++) {
+                    if (Number(selectPoint.id) === _this.pointsToRemoveEd[j]) {
+                      _this.pointsToRemoveEd.splice(j, 1)
                     }
                   }
                 }
@@ -997,12 +1104,12 @@ export default {
           )
           this.myEliminatedDataPrimitive.remove(this.mySelectedPoints[point].primitive)
           this.myEliminatedDataEntity.entities.remove(pointEntity)
-          for(var i=0; i<this.dataReceived[0].length; i++) {
+          for (var i = 0; i < this.dataReceived[0].length; i++) {
             if (this.dataReceived[0][i].id === this.mySelectedPoints[point].primitive._id) {
-              this.dataReceived[0][i].status='validated by hand'
+              this.dataReceived[0][i].status = 'validated by hand'
             }
           }
-          //this.dataReceived[0][id].status='validated by hand' // pas bon, deuxième indice renvoie à index et non à id.. du coup décalage
+          // this.dataReceived[0][id].status='validated by hand' // pas bon, deuxième indice renvoie à index et non à id.. du coup décalage
         } else {
           this.myEliminatedDataEntity.entities.add(
             {
@@ -1040,9 +1147,9 @@ export default {
           )
           this.myfilteredDataPrimitive.remove(this.mySelectedPoints[point].primitive)
           this.myfilteredDataEntity.entities.remove(pointEntity)
-          for(var i=0; i<this.dataReceived[0].length; i++) {
-            if (this.dataReceived[0][i].id === this.mySelectedPoints[point].primitive._id) {
-              this.dataReceived[0][i].status='removed by hand'
+          for (var j = 0; j < this.dataReceived[0].length; j++) {
+            if (this.dataReceived[0][j].id === this.mySelectedPoints[point].primitive._id) {
+              this.dataReceived[0][j].status = 'removed by hand'
             }
           }
           // this.dataReceived[0][id].status='removed by hand' // pas bon, deuxième indice renvoie à index et non à id.. du coup décalage
@@ -1102,11 +1209,14 @@ export default {
         this.picked = ''
         this.customDestroyTimeline()
         this.displayCheckbox = false
+        // this.entityLabel.destroy()
+        this.pointsToRemoveFd = []
+        this.pointsToRemoveEd = []
         // }
       }
     },
-    instanciateCollection(data) {
-          // To add data to points collections
+    instanciateCollection (data) {
+      // To add data to points collections
       for (var itr in data[0]) {
         this.myRawDataPrimitive.add(this.createPointPrimitive(data[0][itr], this.myConfigCollection.myRawData.defaultColor, this.myConfigCollection.myRawData.outlineColor))
         this.myRawDataEntity.entities.add(this.createPointEntity(data[0][itr], this.myConfigCollection.myRawData.defaultColor, this.myConfigCollection.myRawData.outlineColor))
@@ -1115,12 +1225,12 @@ export default {
         this.myPrefilteredDataPrimitive.add(this.createPointPrimitive(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, this.myConfigCollection.myPrefilteredData.outlineColor))
         this.myPrefilteredDataEntity.entities.add(this.createPointEntity(data[1][itp], this.myConfigCollection.myPrefilteredData.defaultColor, this.myConfigCollection.myPrefilteredData.outlineColor))
       }
-      for (var ite in data[2]) {
-        this.myImpossibleDataPrimitive.add(this.createPointPrimitive(data[2][ite], this.myConfigCollection.myImpossibleData.defaultColor, this.myConfigCollection.myImpossibleData.outlineColor))
+      for (var iti in data[2]) {
+        this.myImpossibleDataPrimitive.add(this.createPointPrimitive(data[2][iti], this.myConfigCollection.myImpossibleData.defaultColor, this.myConfigCollection.myImpossibleData.outlineColor))
       }
-      for (var itf in data[3]) {
-        this.myEliminatedDataPrimitive.add(this.createPointPrimitive(data[3][itf], this.myConfigCollection.myEliminatedData.defaultColor, this.myConfigCollection.myEliminatedData.outlineColor)) // to create points
-        this.myEliminatedDataEntity.entities.add(this.createPointEntity(data[3][itf], this.myConfigCollection.myEliminatedData.defaultColor, this.myConfigCollection.myEliminatedData.outlineColor))
+      for (var ite in data[3]) {
+        this.myEliminatedDataPrimitive.add(this.createPointPrimitive(data[3][ite], this.myConfigCollection.myEliminatedData.defaultColor, this.myConfigCollection.myEliminatedData.outlineColor)) // to create points
+        this.myEliminatedDataEntity.entities.add(this.createPointEntity(data[3][ite], this.myConfigCollection.myEliminatedData.defaultColor, this.myConfigCollection.myEliminatedData.outlineColor))
       }
       for (var itf in data[4]) {
         this.myfilteredDataPrimitive.add(this.createPointPrimitive(data[4][itf], this.myConfigCollection.myfilteredData.defaultColor, this.myConfigCollection.myfilteredData.outlineColor)) // to create points
@@ -1129,11 +1239,11 @@ export default {
       if (data[5].length > 0) {
         console.log('immobility detected')
         // this.immobility = true
-        for (var iti in data[5]) {
-          this.myDetected_immoPrimitive.add(this.createPointPrimitive(data[5][iti], this.myConfigCollection.myImmobilityData.defaultColor, this.myConfigCollection.myImmobilityData.outlineColor))
+        for (var itim in data[5]) {
+          this.myDetected_immoPrimitive.add(this.createPointPrimitive(data[5][itim], this.myConfigCollection.myImmobilityData.defaultColor, this.myConfigCollection.myImmobilityData.outlineColor))
         }
       }
-    },
+    }
   },
   // Create collections and config object
   mounted () {
@@ -1141,7 +1251,6 @@ export default {
     // MODIFIER AVEC THIS.EMIT DANS ImportData ET EVENT LISTENER DANS APP avec fonction https://www.telerik.com/blogs/how-to-emit-data-in-vue-beyond-the-vuejs-documentation
     _this.$root.$on('eventing', data => {
       // Creating Collections of points
-      console.log(data[8])
       _this.trackDuration = data[8].trackDuration
       _this.overallDistance = data[8].overallDistance
       _this.meanSpeed = data[8].meanSpeed
@@ -1191,30 +1300,30 @@ export default {
           references: _this.myfilteredDataPrimitive
         },
         'myImmobilityData': { //  à modifier
-          defaultColor: 4286611584,// grey
+          defaultColor: 4286611584, // grey
           clickedColor: 4286611584,
           outlineColor: 4294967295,
-          references: null,
+          // references: null,
           references: _this.myDetected_immoPrimitive
         }
       }
       var terrainProvider = _this._myViewer.terrainProvider
-      if (data[6]===1) {
+      if (data[6] === 1) {
         alert('The date entered is not in the dataset')
         this.loading = false
         this.$root.$emit('NoUpdate', this.loading)
       } else {
         if (data[4].length !== 0) {
-          var position = data[4].map(function(item) { 
-            return _this._myCesium.Cartographic.fromDegrees( Number(item.LON), Number(item.LAT),  Number(item.elevation) ) 
+          var position = data[4].map(function (item) {
+            return _this._myCesium.Cartographic.fromDegrees(Number(item.LON), Number(item.LAT), Number(item.elevation))
           })
           // var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
           var promise = this._myCesium.sampleTerrainMostDetailed(terrainProvider, position)
           this._myCesium.when(promise, function (updatedPositions) {
-            for ( var i =0; i < updatedPositions.length; i++) {
+            for (var i = 0; i < updatedPositions.length; i++) {
               if (updatedPositions[i].height > _this.dataReceived[4][i].elevation) {
                 _this.dataReceived[4][i].elevation = updatedPositions[i].height
-              } 
+              }
               if (data[6] === 'Terrestrian' || data[6] === 'Aquatic') {
                 _this.dataReceived[4][i].elevation = updatedPositions[i].height
               }
@@ -1231,8 +1340,6 @@ export default {
       }
     })
   },
-
-
   // NOT USED
   MakeListSameColor (collection, list, color) {
     for (var i = 0; i < collection.length; i++) {
