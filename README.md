@@ -1,4 +1,4 @@
-# stageNS
+# Animal Movement Cleaner Application
 Prerequisites: 
 Nodejs 10.16.0 (https://nodejs.org/en/ ), Python 3.7.3 (https://www.python.org/downloads/ )
 
