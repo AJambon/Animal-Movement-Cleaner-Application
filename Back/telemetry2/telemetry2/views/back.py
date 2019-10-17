@@ -46,7 +46,7 @@ def init_upload(request):
     # workingDf.insert(len(workingDf.columns),'status','pending')
     points_prefiltered = dfToListDict(workingDf)
     rawPointsAnnotated = dfToListDict(rawPointsDf)
-    rawPointsAnnotated, eliminatedSpeed,points_filtered1, alertDate =Speed_algo(rawPointsAnnotated,points_prefiltered,maxSpeed,deploymentDate) # voir quoi faire avec rawPoints
+    rawPointsAnnotated, eliminatedSpeed,points_filtered1, alertDate, points=Speed_algo(rawPointsAnnotated,points_prefiltered,maxSpeed,deploymentDate) # voir quoi faire avec rawPoints
     if alertDate == 1:
         return rawPointsAnnotated,points_prefiltered,dfToListDict(impossiblePointsdf), eliminatedSpeed, points_filtered1, speciesType, alertDate
     if technology == 'argos':
@@ -391,7 +391,7 @@ def Speed_algo(rawPointsAnnotated,points,MaxSpeed,deploymentDatestr):
                 break 
     # Elimination des points dont la vitesse a été jugée aberrante
     pointsfiltered = [x for x in points if x not in eliminatedSpeed]          
-    return rawPointsAnnotated, eliminatedSpeed, pointsfiltered, alertDate 
+    return rawPointsAnnotated, eliminatedSpeed, pointsfiltered, alertDate, points 
     # renvoi 1/la collection avec tous les points mais annotés, 2/les points éliminés par vitesse et 3/ 1-2
     
 
