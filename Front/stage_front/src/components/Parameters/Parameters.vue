@@ -60,9 +60,9 @@ export default {
         technology: 'gps',
         speciesType: 'Avian',
         species: 'EV',
-        speed: '300',
+        speed: '100',
         immoTime: '24',
-        deploymentDate:"2012-04-17T08:00"
+        deploymentDate: '2012-04-17T08:00'
       }
     }
   },
@@ -70,13 +70,13 @@ export default {
     parametersSelection () {
       EventBusParameters.$emit('ParamsSelect', this.parameters)
     },
-    csvPattern() {
+    csvPattern () {
       console.log('ok')
-      var mandatoryColumns = ['event-id','timestamp','location-lat','location-long','elevation(optional)','HDOP(optional)','info(optional)']
+      var mandatoryColumns = ['event-id', 'timestamp', 'location-lat', 'location-long', 'elevation(optional)', 'HDOP(optional)', 'info(optional)']
       var separator = ';'
       var headers = mandatoryColumns.join(separator)
       headers += '\n'
-      var ligne = ''
+      // var ligne = ''
       this.myCSV = headers
       var hiddenElement = document.createElement('a')
       hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(this.myCSV)
