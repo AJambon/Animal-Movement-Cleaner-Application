@@ -2623,7 +2623,7 @@ export default {
       parameters: null,
       loading: false,
       submit: false,
-      submit1:[]
+      submit1: []
     }
   },
   created () {
@@ -2633,7 +2633,7 @@ export default {
   },
   methods: {
     UpdateData () {
-      if (this.submit== true) {
+      if (this.submit === true) {
         if (confirm('You are going to loose current data, do you still want to proceed ?')) {
           this.$emit('UpdateData', true)
           this.mysubmit()
@@ -2685,8 +2685,8 @@ export default {
                   'Content-Type': 'multipart/form-data'
                 }
               }).then((response) => {
-                this.submit = true
-                this.$root.$emit('eventing', response.data)
+              this.submit = true
+              this.$root.$emit('eventing', response.data)
             },
             (response) => {
               console.log('erreur', response)
@@ -2699,10 +2699,10 @@ export default {
       }
     }
   },
-  mounted(){
+  mounted () {
     var _this = this
     this.$root.$on('NoUpdate', data => {
-      _this.submit=data
+      _this.submit = data
     })
   }
 }
