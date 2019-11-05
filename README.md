@@ -1,4 +1,11 @@
 # Animal Movement Cleaner Application
+
+Bio-logging can be used to study animal movements. However, geolocation technologies are not perfect and can generate unaccurate positions. 
+In that way, this application aims at giving an easy way to clean geolocated data thanks to algorithms, but also gives the opportunity to proceed it by hand. 
+A 3D visualization is obtained thanks to CesiumJS. 
+
+
+# How to install it
 Prerequisites: 
 Nodejs 10.16.0 (https://nodejs.org/en/ ), Python 3.7.3 (https://www.python.org/downloads/ )
 
